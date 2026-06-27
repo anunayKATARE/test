@@ -8,9 +8,13 @@ on:
   pull_request:
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
+    if: "!contains(github.event.head_commit.message, '[skip ci]')"
     steps:
       - uses: actions/checkout@v4
 
@@ -31,3 +35,18 @@ jobs:
         with:
           name: flappy-bird-debug-apk
           path: app/build/outputs/apk/debug/app-debug.apk
+
+      # Workflow artifacts live on Azure blob storage, which some sandboxed
+      # dev environments can't reach. Committing the APK back into the repo
+      # makes it fetchable through plain git instead.
+      - name: Commit built APK back to branch
+        if: github.event_name == 'push'
+        run: |
+          cp app/build/outputs/apk/debug/app-debug.apk flappy-bird-debug.apk
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -f flappy-bird-debug.apk
+          if ! git diff --cached --quiet; then
+            git commit -m "ci: update built debug APK [skip ci]"
+            git push origin HEAD:${{ github.ref_name }}
+          fi
