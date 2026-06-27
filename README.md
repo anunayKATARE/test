@@ -1,23 +1,30 @@
-# Cloud Token Chat
+# Cloud Token Chat (Android)
 
-A minimal chat app that uses your own Anthropic API token (a "cloud token") to chat with Claude.
+A native Android app that lets you chat with Claude using your own Anthropic API token.
 
 ## How it works
 
-- You paste your Anthropic API key into the settings panel in the browser. It's stored in `localStorage` only.
-- The browser sends chat requests to this app's small Express server, which forwards them to the Anthropic Messages API using your token.
-- The server never stores or logs your token — it's only used to make the single upstream request and then discarded.
+- Open the app, tap the gear icon, and paste your Anthropic API key plus pick a model.
+- The token is stored in `EncryptedSharedPreferences` on-device (AES-256) — it is never sent anywhere except directly to `https://api.anthropic.com` from your phone.
+- Chat requests go straight from the app to the Anthropic Messages API over HTTPS using OkHttp.
 
-## Setup
+## Project structure
+
+- `app/src/main/java/com/cloudtokenchat/app/MainActivity.kt` — Jetpack Compose UI (chat screen + settings dialog)
+- `app/src/main/java/com/cloudtokenchat/app/ChatViewModel.kt` — chat state and message history
+- `app/src/main/java/com/cloudtokenchat/app/AnthropicClient.kt` — OkHttp client that calls the Anthropic Messages API
+- `app/src/main/java/com/cloudtokenchat/app/TokenStore.kt` — encrypted storage for the API token
+
+## Building locally
+
+Open the project root in Android Studio (Jellyfish or newer) and let it sync, or from the command line with a Gradle 8.7+ install:
 
 ```bash
-npm install
-npm start
+gradle assembleDebug
 ```
 
-Then open http://localhost:3000, click the gear icon, paste your Anthropic API key, pick a model, and start chatting.
+The debug APK is produced at `app/build/outputs/apk/debug/app-debug.apk`.
 
-## Notes
+## Building in CI
 
-- Requires Node.js 18+ (uses the built-in `fetch`).
-- Your API token never leaves your browser except to this server, which only relays it to `https://api.anthropic.com`.
+The `.github/workflows/android-apk.yml` workflow builds a debug APK on every push and uploads it as a workflow artifact named `app-debug-apk`.
