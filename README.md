@@ -13,14 +13,20 @@ domain/            <- Pure Kotlin, no Android imports
     Bird.kt           Player entity; delegates gravity math to PhysicsEngine (DIP)
     Pipe.kt           Obstacle entity; same GameEntity contract as Bird (LSP)
   physics/
-    PhysicsEngine.kt      Gravity model abstraction + StandardPhysicsEngine
-    CollisionDetector.kt  AABB collision strategy abstraction
+    PhysicsEngine.kt          Gravity model abstraction + StandardPhysicsEngine
+    CollisionDetector.kt      AABB collision strategy abstraction
+    ReachabilityCalculator.kt Max climb/fall in a given time, used to keep
+                               procedurally placed pipes physically reachable
 
 engine/             <- Game rules, still no Android imports
   GameEngine.kt       Orchestrates state machine + per-frame update; depends
                        only on interfaces (CollisionDetector, PipeSpawner,
                        ScoreTracker) passed into its constructor (DIP)
-  PipeSpawner.kt      Obstacle-spawning strategy abstraction (OCP)
+  PipeSpawner.kt      Obstacle-spawning strategy abstraction (OCP); the random
+                       implementation constrains each new gap center to what
+                       ReachabilityCalculator says is achievable from the
+                       previous one, so no pipe ever requires more climb than
+                       the bird's jump strength + max human tap rate allow
   ScoreTracker.kt     Scoring abstraction, swappable storage later
 
 ui/                 <- The only layer allowed to import android.*

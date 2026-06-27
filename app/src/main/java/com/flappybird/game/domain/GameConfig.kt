@@ -16,7 +16,10 @@ data class GameConfig(
     val pipeGap: Float = 320f,
     val pipeSpeed: Float = 260f,
     val pipeSpawnIntervalSeconds: Float = 1.6f,
-    val groundHeight: Float = 80f
+    val groundHeight: Float = 80f,
+    /** Generous upper bound on sustained single-finger tap rate, used to keep
+     *  procedurally placed pipe gaps reachable — see [PhysicsReachabilityCalculator]. */
+    val maxTapsPerSecond: Float = 8f
 ) {
     companion object {
         fun forScreen(width: Float, height: Float) = GameConfig(

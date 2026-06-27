@@ -84,6 +84,7 @@ class GameEngine(
     private fun restart() {
         bird.reset()
         _pipes.clear()
+        pipeSpawner.reset()
         scoreTracker.reset()
         timeSinceLastSpawn = 0f
         state = GameState.READY

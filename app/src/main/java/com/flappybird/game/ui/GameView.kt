@@ -9,6 +9,7 @@ import android.view.View
 import com.flappybird.game.domain.GameConfig
 import com.flappybird.game.domain.entity.Bird
 import com.flappybird.game.domain.physics.AabbCollisionDetector
+import com.flappybird.game.domain.physics.PhysicsReachabilityCalculator
 import com.flappybird.game.domain.physics.StandardPhysicsEngine
 import com.flappybird.game.engine.GameEngine
 import com.flappybird.game.engine.InMemoryScoreTracker
@@ -42,12 +43,18 @@ class GameView @JvmOverloads constructor(
         val config = GameConfig.forScreen(w.toFloat(), h.toFloat())
         val physicsEngine = StandardPhysicsEngine(config.gravity, config.maxFallSpeed)
         val bird = Bird(config, physicsEngine)
+        val reachabilityCalculator = PhysicsReachabilityCalculator(
+            gravity = config.gravity,
+            jumpVelocity = config.jumpVelocity,
+            maxFallSpeed = config.maxFallSpeed,
+            maxTapsPerSecond = config.maxTapsPerSecond
+        )
 
         engine = GameEngine(
             config = config,
             bird = bird,
             collisionDetector = AabbCollisionDetector(),
-            pipeSpawner = RandomPipeSpawner(config),
+            pipeSpawner = RandomPipeSpawner(config, reachabilityCalculator),
             scoreTracker = InMemoryScoreTracker()
         )
         renderer = CanvasGameRenderer(config)
