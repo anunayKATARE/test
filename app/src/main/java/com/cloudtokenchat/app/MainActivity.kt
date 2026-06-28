@@ -16,6 +16,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.cloudtokenchat.app.provider.ChatProvider
+import com.cloudtokenchat.app.provider.ProviderRegistry
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
@@ -101,11 +103,13 @@ fun ChatScreen(viewModel: ChatViewModel = viewModel()) {
 
     if (showSettings) {
         SettingsDialog(
+            initialProviderId = state.providerId,
             initialApiKey = state.apiKey,
             initialModel = state.model,
+            loadCredentials = viewModel::credentialsFor,
             onDismiss = { showSettings = false },
-            onSave = { key, model ->
-                viewModel.saveSettings(key, model)
+            onSave = { providerId, key, model ->
+                viewModel.saveSettings(providerId, key, model)
                 showSettings = false
             }
         )
@@ -140,29 +144,65 @@ fun MessageBubble(message: ChatMessage) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsDialog(
+    initialProviderId: String,
     initialApiKey: String,
     initialModel: String,
+    loadCredentials: (String) -> Pair<String, String>,
     onDismiss: () -> Unit,
-    onSave: (String, String) -> Unit
+    onSave: (providerId: String, apiKey: String, model: String) -> Unit
 ) {
+    var providerId by remember { mutableStateOf(initialProviderId) }
     var apiKey by remember { mutableStateOf(initialApiKey) }
     var model by remember { mutableStateOf(initialModel) }
+    var providerMenuExpanded by remember { mutableStateOf(false) }
     var modelMenuExpanded by remember { mutableStateOf(false) }
+
+    val provider: ChatProvider = remember(providerId) { ProviderRegistry.get(providerId) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("API Token Settings") },
+        title = { Text("API Settings") },
         text = {
             Column {
                 Text(
-                    "Your token is stored encrypted on this device and sent directly to Anthropic's API. It never goes through any other server.",
+                    "Your key is stored encrypted on this device and sent directly to the selected provider. It never goes through any other server.",
                     style = MaterialTheme.typography.bodySmall
                 )
+                Spacer(modifier = Modifier.height(12.dp))
+                ExposedDropdownMenuBox(
+                    expanded = providerMenuExpanded,
+                    onExpandedChange = { providerMenuExpanded = it }
+                ) {
+                    OutlinedTextField(
+                        value = provider.displayName,
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("Provider") },
+                        modifier = Modifier.menuAnchor().fillMaxWidth()
+                    )
+                    ExposedDropdownMenu(
+                        expanded = providerMenuExpanded,
+                        onDismissRequest = { providerMenuExpanded = false }
+                    ) {
+                        ProviderRegistry.all.forEach { option ->
+                            DropdownMenuItem(
+                                text = { Text(option.displayName) },
+                                onClick = {
+                                    providerId = option.id
+                                    val (storedKey, storedModel) = loadCredentials(option.id)
+                                    apiKey = storedKey
+                                    model = storedModel
+                                    providerMenuExpanded = false
+                                }
+                            )
+                        }
+                    }
+                }
                 Spacer(modifier = Modifier.height(12.dp))
                 OutlinedTextField(
                     value = apiKey,
                     onValueChange = { apiKey = it },
-                    label = { Text("Anthropic API token") },
+                    label = { Text("${provider.displayName} API key") },
                     visualTransformation = PasswordVisualTransformation(),
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -182,7 +222,7 @@ fun SettingsDialog(
                         expanded = modelMenuExpanded,
                         onDismissRequest = { modelMenuExpanded = false }
                     ) {
-                        AnthropicClient.MODELS.forEach { option ->
+                        provider.models.forEach { option ->
                             DropdownMenuItem(
                                 text = { Text(option) },
                                 onClick = {
@@ -196,7 +236,7 @@ fun SettingsDialog(
             }
         },
         confirmButton = {
-            TextButton(onClick = { onSave(apiKey.trim(), model) }) {
+            TextButton(onClick = { onSave(providerId, apiKey.trim(), model) }) {
                 Text("Save")
             }
         },

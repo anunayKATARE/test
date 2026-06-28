@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
 
+/** Encrypted, per-provider storage for API keys, chosen models, and the active provider. */
 class TokenStore(context: Context) {
 
     private val masterKey = MasterKey.Builder(context)
@@ -18,20 +19,28 @@ class TokenStore(context: Context) {
         EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
     )
 
-    fun getApiKey(): String? = prefs.getString(KEY_API_KEY, null)
+    fun getApiKey(providerId: String): String? = prefs.getString(apiKeyPref(providerId), null)
 
-    fun saveApiKey(value: String) {
-        prefs.edit().putString(KEY_API_KEY, value).apply()
+    fun saveApiKey(providerId: String, value: String) {
+        prefs.edit().putString(apiKeyPref(providerId), value).apply()
     }
 
-    fun getModel(): String? = prefs.getString(KEY_MODEL, null)
+    fun getModel(providerId: String): String? = prefs.getString(modelPref(providerId), null)
 
-    fun saveModel(value: String) {
-        prefs.edit().putString(KEY_MODEL, value).apply()
+    fun saveModel(providerId: String, value: String) {
+        prefs.edit().putString(modelPref(providerId), value).apply()
     }
+
+    fun getSelectedProviderId(): String? = prefs.getString(KEY_SELECTED_PROVIDER, null)
+
+    fun saveSelectedProviderId(value: String) {
+        prefs.edit().putString(KEY_SELECTED_PROVIDER, value).apply()
+    }
+
+    private fun apiKeyPref(providerId: String) = "api_key_$providerId"
+    private fun modelPref(providerId: String) = "model_$providerId"
 
     companion object {
-        private const val KEY_API_KEY = "api_key"
-        private const val KEY_MODEL = "model"
+        private const val KEY_SELECTED_PROVIDER = "selected_provider"
     }
 }
