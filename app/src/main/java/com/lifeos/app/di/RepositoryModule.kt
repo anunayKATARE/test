@@ -6,6 +6,8 @@ import com.lifeos.app.feature.goal.data.GoalRepositoryImpl
 import com.lifeos.app.feature.goal.domain.GoalRepository
 import com.lifeos.app.feature.habit.data.HabitRepositoryImpl
 import com.lifeos.app.feature.habit.domain.HabitRepository
+import com.lifeos.app.feature.inspiration.data.InspirationRepositoryImpl
+import com.lifeos.app.feature.inspiration.domain.InspirationRepository
 import com.lifeos.app.feature.journal.data.JournalRepositoryImpl
 import com.lifeos.app.feature.journal.domain.JournalRepository
 import com.lifeos.app.feature.mentaltoughness.data.MentalToughnessRepositoryImpl
@@ -18,6 +20,8 @@ import com.lifeos.app.feature.reflection.data.ReflectionRepositoryImpl
 import com.lifeos.app.feature.reflection.domain.ReflectionRepository
 import com.lifeos.app.feature.selfbelief.data.SelfBeliefRepositoryImpl
 import com.lifeos.app.feature.selfbelief.domain.SelfBeliefRepository
+import com.lifeos.app.feature.task.data.TaskRepositoryImpl
+import com.lifeos.app.feature.task.domain.TaskRepository
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
@@ -63,4 +67,12 @@ abstract class RepositoryModule {
     @Binds
     @Singleton
     abstract fun bindProblemRepository(impl: ProblemRepositoryImpl): ProblemRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindTaskRepository(impl: TaskRepositoryImpl): TaskRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindInspirationRepository(impl: InspirationRepositoryImpl): InspirationRepository
 }

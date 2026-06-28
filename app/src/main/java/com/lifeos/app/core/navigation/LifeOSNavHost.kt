@@ -12,11 +12,15 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import com.lifeos.app.feature.analytics.presentation.AnalyticsScreen
+import com.lifeos.app.feature.calendar.presentation.CalendarScreen
+import com.lifeos.app.feature.calendar.presentation.DayDetailScreen
 import com.lifeos.app.feature.category.presentation.CategoryScreen
 import com.lifeos.app.feature.dashboard.presentation.DashboardScreen
 import com.lifeos.app.feature.goal.presentation.GoalScreen
@@ -70,6 +74,13 @@ fun LifeOSNavHost() {
             composable(LifeOSRoutes.MORE) {
                 MoreScreen(onItemClick = { route -> navController.navigate(route) })
             }
+            composable(LifeOSRoutes.CALENDAR) {
+                CalendarScreen(onDayClick = { date -> navController.navigate(LifeOSRoutes.dayDetail(date)) })
+            }
+            composable(
+                LifeOSRoutes.DAY_DETAIL,
+                arguments = listOf(navArgument("date") { type = NavType.StringType }),
+            ) { DayDetailScreen() }
             composable(LifeOSRoutes.CATEGORIES) { CategoryScreen() }
             composable(LifeOSRoutes.MENTAL_TOUGHNESS) { MentalToughnessScreen() }
             composable(LifeOSRoutes.SELF_BELIEF) { SelfBeliefScreen() }

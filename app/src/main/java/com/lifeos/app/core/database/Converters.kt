@@ -6,6 +6,7 @@ import com.lifeos.app.feature.goal.domain.GoalStatus
 import com.lifeos.app.feature.habit.domain.HabitDifficulty
 import com.lifeos.app.feature.habit.domain.HabitImportance
 import com.lifeos.app.feature.habit.domain.HabitScheduleType
+import com.lifeos.app.feature.inspiration.domain.InspirationType
 import com.lifeos.app.feature.mentaltoughness.domain.MentalToughnessType
 import com.lifeos.app.feature.mood.domain.Emotion
 import com.lifeos.app.feature.problemsolver.domain.ProblemStatus
@@ -111,6 +112,12 @@ class Converters {
 
     @TypeConverter
     fun stringToProblemStatus(value: String): ProblemStatus = ProblemStatus.valueOf(value)
+
+    @TypeConverter
+    fun inspirationTypeToString(value: InspirationType): String = value.name
+
+    @TypeConverter
+    fun stringToInspirationType(value: String): InspirationType = InspirationType.valueOf(value)
 
     companion object {
         private const val UNIT_SEPARATOR = ""

@@ -6,12 +6,14 @@ import com.lifeos.app.core.database.AppDatabase
 import com.lifeos.app.feature.category.data.CategoryDao
 import com.lifeos.app.feature.goal.data.GoalDao
 import com.lifeos.app.feature.habit.data.HabitDao
+import com.lifeos.app.feature.inspiration.data.InspirationDao
 import com.lifeos.app.feature.journal.data.JournalDao
 import com.lifeos.app.feature.mentaltoughness.data.MentalToughnessDao
 import com.lifeos.app.feature.mood.data.MoodDao
 import com.lifeos.app.feature.problemsolver.data.ProblemDao
 import com.lifeos.app.feature.reflection.data.ReflectionDao
 import com.lifeos.app.feature.selfbelief.data.SelfBeliefDao
+import com.lifeos.app.feature.task.data.TaskDao
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -26,7 +28,9 @@ object DatabaseModule {
     @Provides
     @Singleton
     fun provideAppDatabase(@ApplicationContext context: Context): AppDatabase =
-        Room.databaseBuilder(context, AppDatabase::class.java, AppDatabase.DATABASE_NAME).build()
+        Room.databaseBuilder(context, AppDatabase::class.java, AppDatabase.DATABASE_NAME)
+            .fallbackToDestructiveMigration()
+            .build()
 
     @Provides
     fun provideCategoryDao(db: AppDatabase): CategoryDao = db.categoryDao()
@@ -54,4 +58,10 @@ object DatabaseModule {
 
     @Provides
     fun provideProblemDao(db: AppDatabase): ProblemDao = db.problemDao()
+
+    @Provides
+    fun provideTaskDao(db: AppDatabase): TaskDao = db.taskDao()
+
+    @Provides
+    fun provideInspirationDao(db: AppDatabase): InspirationDao = db.inspirationDao()
 }

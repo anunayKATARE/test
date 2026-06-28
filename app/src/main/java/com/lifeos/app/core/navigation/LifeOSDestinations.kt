@@ -8,6 +8,7 @@ import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Mood
 import androidx.compose.material.icons.filled.MoreHoriz
 import androidx.compose.ui.graphics.vector.ImageVector
+import java.time.LocalDate
 
 object LifeOSRoutes {
     const val DASHBOARD = "dashboard"
@@ -23,6 +24,10 @@ object LifeOSRoutes {
     const val PROBLEM_SOLVER = "problem_solver"
     const val ANALYTICS = "analytics"
     const val SEARCH = "search"
+    const val CALENDAR = "calendar"
+    const val DAY_DETAIL = "day_detail/{date}"
+
+    fun dayDetail(date: LocalDate): String = "day_detail/$date"
 }
 
 data class BottomNavItem(val route: String, val label: String, val icon: ImageVector)
@@ -39,6 +44,7 @@ val bottomNavItems = listOf(
 data class MoreMenuItem(val route: String, val label: String)
 
 val moreMenuItems = listOf(
+    MoreMenuItem(LifeOSRoutes.CALENDAR, "Calendar"),
     MoreMenuItem(LifeOSRoutes.CATEGORIES, "Categories"),
     MoreMenuItem(LifeOSRoutes.MENTAL_TOUGHNESS, "Mental Toughness"),
     MoreMenuItem(LifeOSRoutes.SELF_BELIEF, "Self-Belief"),

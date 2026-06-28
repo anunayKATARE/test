@@ -28,6 +28,7 @@ import com.lifeos.app.core.common.DateTimeUtils
 import com.lifeos.app.core.ui.components.ConsistencyHeatmap
 import com.lifeos.app.core.ui.components.SectionHeader
 import com.lifeos.app.feature.goal.domain.Goal
+import com.lifeos.app.feature.inspiration.presentation.InspirationCarousel
 import com.lifeos.app.feature.mood.domain.MoodEntry
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -45,6 +46,9 @@ fun DashboardScreen(viewModel: DashboardViewModel = hiltViewModel()) {
                     style = MaterialTheme.typography.titleMedium,
                     modifier = Modifier.padding(16.dp),
                 )
+            }
+            item {
+                InspirationCarousel(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp))
             }
             item {
                 Card(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
