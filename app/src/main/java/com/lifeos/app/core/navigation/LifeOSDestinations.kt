@@ -1,0 +1,49 @@
+package com.lifeos.app.core.navigation
+
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Book
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Flag
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Mood
+import androidx.compose.material.icons.filled.MoreHoriz
+import androidx.compose.ui.graphics.vector.ImageVector
+
+object LifeOSRoutes {
+    const val DASHBOARD = "dashboard"
+    const val JOURNAL = "journal"
+    const val MOOD = "mood"
+    const val HABITS = "habits"
+    const val GOALS = "goals"
+    const val MORE = "more"
+    const val CATEGORIES = "categories"
+    const val MENTAL_TOUGHNESS = "mental_toughness"
+    const val SELF_BELIEF = "self_belief"
+    const val REFLECTION = "reflection"
+    const val PROBLEM_SOLVER = "problem_solver"
+    const val ANALYTICS = "analytics"
+    const val SEARCH = "search"
+}
+
+data class BottomNavItem(val route: String, val label: String, val icon: ImageVector)
+
+val bottomNavItems = listOf(
+    BottomNavItem(LifeOSRoutes.DASHBOARD, "Home", Icons.Filled.Home),
+    BottomNavItem(LifeOSRoutes.JOURNAL, "Journal", Icons.Filled.Book),
+    BottomNavItem(LifeOSRoutes.MOOD, "Mood", Icons.Filled.Mood),
+    BottomNavItem(LifeOSRoutes.HABITS, "Habits", Icons.Filled.CheckCircle),
+    BottomNavItem(LifeOSRoutes.GOALS, "Goals", Icons.Filled.Flag),
+    BottomNavItem(LifeOSRoutes.MORE, "More", Icons.Filled.MoreHoriz),
+)
+
+data class MoreMenuItem(val route: String, val label: String)
+
+val moreMenuItems = listOf(
+    MoreMenuItem(LifeOSRoutes.CATEGORIES, "Categories"),
+    MoreMenuItem(LifeOSRoutes.MENTAL_TOUGHNESS, "Mental Toughness"),
+    MoreMenuItem(LifeOSRoutes.SELF_BELIEF, "Self-Belief"),
+    MoreMenuItem(LifeOSRoutes.REFLECTION, "Reflection Library"),
+    MoreMenuItem(LifeOSRoutes.PROBLEM_SOLVER, "Problem Solver"),
+    MoreMenuItem(LifeOSRoutes.ANALYTICS, "Analytics"),
+    MoreMenuItem(LifeOSRoutes.SEARCH, "Search"),
+)
