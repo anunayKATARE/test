@@ -1,6 +1,8 @@
 name: A11y Inspector Build
 
 on:
+  push:
+    branches: [ claude/a11y-element-inspector-h46rqw ]
   workflow_dispatch:
 
 permissions:
