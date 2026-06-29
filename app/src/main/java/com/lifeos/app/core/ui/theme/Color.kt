@@ -9,6 +9,17 @@ val LifeOSGreen40 = Color(0xFF1B5E20)
 val LifeOSGreen80 = Color(0xFFA6D7A8)
 val LifeOSGreen90 = Color(0xFFC2EFC3)
 
+// Dark "LifeOS green" surface palette, matching the app's signature dark theme.
+val LifeOSDarkBackground = Color(0xFF0B1F12)
+val LifeOSDarkSurface = Color(0xFF12281B)
+val LifeOSDarkSurfaceVariant = Color(0xFF1E3B28)
+val LifeOSDarkOutline = Color(0xFF2E4C3A)
+val LifeOSBrightGreen = Color(0xFF22C55E)
+val LifeOSBrightGreenContainer = Color(0xFF1F4D33)
+val LifeOSOnBrightGreen = Color(0xFF06170D)
+val LifeOSOnDarkSurface = Color(0xFFE3F2E7)
+val LifeOSOnDarkSurfaceVariant = Color(0xFFA8C3AE)
+
 val LifeOSBlue40 = Color(0xFF3C64D0)
 val LifeOSBlue80 = Color(0xFFB7C4FF)
 

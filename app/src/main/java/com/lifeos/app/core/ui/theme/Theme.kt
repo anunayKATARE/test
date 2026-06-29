@@ -27,18 +27,20 @@ private val LightColors = lightColorScheme(
 )
 
 private val DarkColors = darkColorScheme(
-    primary = LifeOSGreen80,
-    onPrimary = LifeOSGreen20,
-    primaryContainer = LifeOSGreen30,
+    primary = LifeOSBrightGreen,
+    onPrimary = LifeOSOnBrightGreen,
+    primaryContainer = LifeOSBrightGreenContainer,
     onPrimaryContainer = LifeOSGreen90,
     secondary = LifeOSBlue80,
     tertiary = LifeOSAmber80,
     error = LifeOSRed80,
-    background = NeutralGrey10,
-    onBackground = NeutralGrey90,
-    surface = NeutralGrey10,
-    onSurface = NeutralGrey90,
-    surfaceVariant = androidx.compose.ui.graphics.Color(0xFF44483E),
+    background = LifeOSDarkBackground,
+    onBackground = LifeOSOnDarkSurface,
+    surface = LifeOSDarkSurface,
+    onSurface = LifeOSOnDarkSurface,
+    surfaceVariant = LifeOSDarkSurfaceVariant,
+    onSurfaceVariant = LifeOSOnDarkSurfaceVariant,
+    outline = LifeOSDarkOutline,
 )
 
 @Composable

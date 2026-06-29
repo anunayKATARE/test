@@ -14,7 +14,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
@@ -32,10 +31,12 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.lifeos.app.core.common.DateTimeUtils
 import com.lifeos.app.core.ui.components.EmptyState
+import com.lifeos.app.core.ui.components.LifeOSCard
 import com.lifeos.app.feature.journal.domain.JournalEntry
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -74,7 +75,7 @@ fun JournalScreen(viewModel: JournalViewModel = hiltViewModel()) {
                 value = query,
                 onValueChange = { query = it; viewModel.search(it) },
                 label = { Text("Search journal") },
-                modifier = Modifier.fillMaxWidth().padding(12.dp),
+                modifier = Modifier.fillMaxWidth().padding(16.dp),
             )
             if (displayedEntries.isEmpty()) {
                 EmptyState(message = "No journal entries yet. Tap + to write your first one.")
@@ -91,17 +92,26 @@ fun JournalScreen(viewModel: JournalViewModel = hiltViewModel()) {
 
 @Composable
 private fun JournalRow(entry: JournalEntry, onDelete: () -> Unit) {
-    Card(modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 6.dp)) {
+    LifeOSCard(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp)) {
         Row(
-            modifier = Modifier.fillMaxWidth().padding(12.dp),
+            modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
         ) {
-            Column {
-                Text(text = entry.title, style = MaterialTheme.typography.titleMedium)
-                Text(text = DateTimeUtils.formatDisplayDateTime(entry.dateTime), style = MaterialTheme.typography.bodySmall)
-                Text(text = entry.body, style = MaterialTheme.typography.bodyMedium, maxLines = 3)
+            Column(modifier = Modifier.weight(1f)) {
+                Text(text = entry.title, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold))
+                Text(
+                    text = DateTimeUtils.formatDisplayDateTime(entry.dateTime),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Text(text = entry.body, style = MaterialTheme.typography.bodyMedium, maxLines = 3, modifier = Modifier.padding(top = 4.dp))
                 if (entry.tags.isNotEmpty()) {
-                    Text(text = entry.tags.joinToString(", ") { "#$it" }, style = MaterialTheme.typography.labelSmall)
+                    Text(
+                        text = entry.tags.joinToString(", ") { "#$it" },
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.padding(top = 4.dp),
+                    )
                 }
             }
             IconButton(onClick = onDelete) {

@@ -1,16 +1,19 @@
 package com.lifeos.app.feature.dashboard.presentation
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.RadioButtonUnchecked
-import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -21,11 +24,15 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.lifeos.app.core.common.DateTimeUtils
 import com.lifeos.app.core.ui.components.ConsistencyHeatmap
+import com.lifeos.app.core.ui.components.LifeOSCard
 import com.lifeos.app.core.ui.components.SectionHeader
 import com.lifeos.app.feature.goal.domain.Goal
 import com.lifeos.app.feature.inspiration.presentation.InspirationCarousel
@@ -51,11 +58,9 @@ fun DashboardScreen(viewModel: DashboardViewModel = hiltViewModel()) {
                 InspirationCarousel(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp))
             }
             item {
-                Card(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
-                    Column(modifier = Modifier.padding(12.dp)) {
-                        Text(text = "Consistency", style = MaterialTheme.typography.titleSmall)
-                        ConsistencyHeatmap(intensityByDate = state.heatmap, weeks = 12, modifier = Modifier.padding(top = 8.dp))
-                    }
+                LifeOSCard(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
+                    Text(text = "Consistency", style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold))
+                    ConsistencyHeatmap(intensityByDate = state.heatmap, weeks = 12, modifier = Modifier.padding(top = 8.dp))
                 }
             }
             item { SectionHeader("Today's goals") }
@@ -85,25 +90,35 @@ fun DashboardScreen(viewModel: DashboardViewModel = hiltViewModel()) {
 
 @Composable
 private fun GoalSummaryRow(goal: Goal) {
-    Card(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp)) {
-        Text(text = goal.title, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(12.dp))
+    LifeOSCard(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp)) {
+        Text(text = goal.title, style = MaterialTheme.typography.bodyLarge)
     }
 }
 
 @Composable
 private fun HabitSummaryRow(title: String, completed: Boolean, onToggle: () -> Unit) {
-    Card(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp)) {
+    LifeOSCard(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp)) {
         Row(
-            modifier = Modifier.fillMaxWidth().padding(8.dp),
+            modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text(text = title, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(8.dp))
+            Text(text = title, style = MaterialTheme.typography.bodyLarge)
             IconButton(onClick = onToggle) {
-                Icon(
-                    imageVector = if (completed) Icons.Filled.CheckCircle else Icons.Filled.RadioButtonUnchecked,
-                    contentDescription = "Toggle habit",
-                    tint = if (completed) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+                Box(
+                    modifier = Modifier
+                        .size(28.dp)
+                        .clip(CircleShape)
+                        .background(if (completed) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        imageVector = if (completed) Icons.Filled.CheckCircle else Icons.Filled.RadioButtonUnchecked,
+                        contentDescription = "Toggle habit",
+                        tint = if (completed) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(18.dp),
+                    )
+                }
             }
         }
     }
@@ -111,11 +126,10 @@ private fun HabitSummaryRow(title: String, completed: Boolean, onToggle: () -> U
 
 @Composable
 private fun MoodSummaryRow(mood: MoodEntry) {
-    Card(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp)) {
+    LifeOSCard(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp)) {
         Text(
             text = "${mood.emotion.name.lowercase()} · ${mood.intensity}/10",
             style = MaterialTheme.typography.bodyLarge,
-            modifier = Modifier.padding(12.dp),
         )
     }
 }
