@@ -15,6 +15,7 @@ import com.lifeos.app.feature.mood.domain.MoodRepository
 import com.lifeos.app.feature.problemsolver.domain.ProblemRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.time.LocalDate
+import java.time.YearMonth
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -29,6 +30,7 @@ data class DashboardUiState(
     val todaysHabits: List<TodayHabitUiModel> = emptyList(),
     val recentMoodEntries: List<MoodEntry> = emptyList(),
     val openProblemsCount: Int = 0,
+    val heatmapMonth: YearMonth = YearMonth.now(),
     val heatmap: Map<LocalDate, Int> = emptyMap(),
     val isLoading: Boolean = true,
 )
@@ -48,15 +50,27 @@ class DashboardViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(DashboardUiState())
     val uiState: StateFlow<DashboardUiState> = _uiState.asStateFlow()
 
+    private var heatmapMonth = YearMonth.now()
+
     init {
+        refresh()
+    }
+
+    fun nextMonth() {
+        heatmapMonth = heatmapMonth.plusMonths(1)
+        refresh()
+    }
+
+    fun previousMonth() {
+        heatmapMonth = heatmapMonth.minusMonths(1)
         refresh()
     }
 
     fun refresh() {
         viewModelScope.launch {
             val today = LocalDate.now()
-            val weeksBack = 12
-            val rangeStart = today.minusDays((weeksBack * 7 - 1).toLong())
+            val rangeStart = heatmapMonth.atDay(1)
+            val rangeEnd = heatmapMonth.atEndOfMonth()
 
             val goals = getTodaysGoalsUseCase()
             val habits = getTodaysHabitsUseCase()
@@ -66,10 +80,10 @@ class DashboardViewModel @Inject constructor(
             val moods = moodRepository.observeRecent(5).first()
             val openProblems = problemRepository.observeOpen().first()
 
-            val habitCompletionsByDay = habitRepository.completionCountByDay(rangeStart, today)
+            val habitCompletionsByDay = habitRepository.completionCountByDay(rangeStart, rangeEnd)
             val journalCountsByDay = journalRepository.countOnDatesBetween(
                 rangeStart.atStartOfDay(java.time.ZoneId.systemDefault()).toInstant(),
-                today.plusDays(1).atStartOfDay(java.time.ZoneId.systemDefault()).toInstant(),
+                rangeEnd.plusDays(1).atStartOfDay(java.time.ZoneId.systemDefault()).toInstant(),
             )
             val heatmap = (habitCompletionsByDay.keys + journalCountsByDay.keys).associate { epochDay ->
                 val date = LocalDate.ofEpochDay(epochDay)
@@ -81,6 +95,7 @@ class DashboardViewModel @Inject constructor(
                 todaysHabits = habits.map { TodayHabitUiModel(it, completedIds.contains(it.id)) },
                 recentMoodEntries = moods,
                 openProblemsCount = openProblems.size,
+                heatmapMonth = heatmapMonth,
                 heatmap = heatmap,
                 isLoading = false,
             )

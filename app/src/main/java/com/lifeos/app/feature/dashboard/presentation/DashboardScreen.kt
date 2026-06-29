@@ -13,6 +13,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.ChevronLeft
+import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.RadioButtonUnchecked
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -38,11 +40,10 @@ import com.lifeos.app.feature.goal.domain.Goal
 import com.lifeos.app.feature.inspiration.presentation.InspirationCarousel
 import com.lifeos.app.feature.mood.domain.MoodEntry
 import java.time.LocalDate
-import java.time.YearMonth
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun DashboardScreen(viewModel: DashboardViewModel = hiltViewModel()) {
+fun DashboardScreen(viewModel: DashboardViewModel = hiltViewModel(), onDayClick: (LocalDate) -> Unit = {}) {
     val state by viewModel.uiState.collectAsState()
 
     Scaffold(
@@ -61,12 +62,27 @@ fun DashboardScreen(viewModel: DashboardViewModel = hiltViewModel()) {
             }
             item {
                 LifeOSCard(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
-                    Text(text = "Consistency", style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        IconButton(onClick = { viewModel.previousMonth() }) {
+                            Icon(Icons.Filled.ChevronLeft, contentDescription = "Previous month")
+                        }
+                        Text(
+                            text = DateTimeUtils.formatMonthTitle(state.heatmapMonth),
+                            style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                        )
+                        IconButton(onClick = { viewModel.nextMonth() }) {
+                            Icon(Icons.Filled.ChevronRight, contentDescription = "Next month")
+                        }
+                    }
                     val maxIntensity = (state.heatmap.values.maxOrNull() ?: 1).coerceAtLeast(1)
                     CalendarMonthGrid(
-                        month = YearMonth.from(LocalDate.now()),
+                        month = state.heatmapMonth,
                         intensityByDate = state.heatmap.mapValues { (_, count) -> (count.toFloat() / maxIntensity).coerceIn(0f, 1f) },
-                        onDayClick = {},
+                        onDayClick = onDayClick,
                         modifier = Modifier.padding(top = 8.dp),
                     )
                 }

@@ -67,7 +67,9 @@ fun LifeOSNavHost() {
             startDestination = LifeOSRoutes.DASHBOARD,
             modifier = Modifier.padding(padding),
         ) {
-            composable(LifeOSRoutes.DASHBOARD) { DashboardScreen() }
+            composable(LifeOSRoutes.DASHBOARD) {
+                DashboardScreen(onDayClick = { date -> navController.navigate(LifeOSRoutes.dayDetail(date)) })
+            }
             composable(LifeOSRoutes.JOURNAL) { JournalScreen() }
             composable(LifeOSRoutes.MOOD) { MoodScreen() }
             composable(LifeOSRoutes.HABITS) { HabitScreen() }
