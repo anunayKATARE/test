@@ -27,4 +27,7 @@ interface MentalToughnessDao {
 
     @Query("SELECT type, COUNT(*) as count FROM mental_toughness_entries GROUP BY type")
     suspend fun countByType(): List<MentalToughnessTypeCount>
+
+    @Query("DELETE FROM mental_toughness_entries WHERE profileId = :profileId")
+    suspend fun deleteAllByProfile(profileId: String)
 }

@@ -39,4 +39,7 @@ interface JournalDao {
             "WHERE dateTime BETWEEN :startMillis AND :endMillis GROUP BY day",
     )
     suspend fun countByDay(startMillis: Long, endMillis: Long): List<DayCount>
+
+    @Query("DELETE FROM journal_entries WHERE profileId = :profileId")
+    suspend fun deleteAllByProfile(profileId: String)
 }

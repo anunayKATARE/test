@@ -19,6 +19,7 @@ data class ProblemEntity(
     val notes: String,
     val createdAt: Instant,
     val updatedAt: Instant,
+    val profileId: String? = null,
 )
 
 fun ProblemEntity.toDomain() = Problem(

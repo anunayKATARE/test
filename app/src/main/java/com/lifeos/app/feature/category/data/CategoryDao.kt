@@ -34,4 +34,7 @@ interface CategoryDao {
 
     @Delete
     suspend fun delete(entity: CategoryEntity)
+
+    @Query("DELETE FROM categories WHERE profileId = :profileId")
+    suspend fun deleteAllByProfile(profileId: String)
 }

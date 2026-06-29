@@ -25,4 +25,7 @@ interface ProblemDao {
 
     @Query("UPDATE problems SET status = :status WHERE id = :id")
     suspend fun setStatus(id: String, status: ProblemStatus)
+
+    @Query("DELETE FROM problems WHERE profileId = :profileId")
+    suspend fun deleteAllByProfile(profileId: String)
 }

@@ -42,7 +42,7 @@ import com.lifeos.app.feature.task.data.TaskEntity
         TaskEntity::class,
         InspirationEntity::class,
     ],
-    version = 2,
+    version = 3,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)

@@ -14,6 +14,7 @@ data class ReflectionEntity(
     val title: String,
     val answers: Map<String, String>,
     val tags: List<String>,
+    val profileId: String? = null,
 )
 
 fun ReflectionEntity.toDomain() = ReflectionEntry(

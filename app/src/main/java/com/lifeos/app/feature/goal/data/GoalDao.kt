@@ -29,4 +29,7 @@ interface GoalDao {
 
     @Query("UPDATE goals SET status = :status WHERE id = :id")
     suspend fun setStatus(id: String, status: GoalStatus)
+
+    @Query("DELETE FROM goals WHERE profileId = :profileId")
+    suspend fun deleteAllByProfile(profileId: String)
 }

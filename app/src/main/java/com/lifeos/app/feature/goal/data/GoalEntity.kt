@@ -21,6 +21,7 @@ data class GoalEntity(
     val categoryId: String?,
     val createdAt: Instant,
     val completedAt: Instant?,
+    val profileId: String? = null,
 )
 
 fun GoalEntity.toDomain() = Goal(

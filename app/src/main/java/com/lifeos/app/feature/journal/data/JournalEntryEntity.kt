@@ -23,6 +23,7 @@ data class JournalEntryEntity(
     val voiceNoteUris: List<String>,
     val createdAt: Instant,
     val updatedAt: Instant,
+    val profileId: String? = null,
 )
 
 fun JournalEntryEntity.toDomain() = JournalEntry(

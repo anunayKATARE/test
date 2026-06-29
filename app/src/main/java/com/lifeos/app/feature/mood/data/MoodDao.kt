@@ -39,4 +39,7 @@ interface MoodDao {
             "WHERE dateTime BETWEEN :startMillis AND :endMillis GROUP BY emotion ORDER BY count DESC",
     )
     suspend fun emotionFrequency(startMillis: Long, endMillis: Long): List<EmotionCount>
+
+    @Query("DELETE FROM mood_entries WHERE profileId = :profileId")
+    suspend fun deleteAllByProfile(profileId: String)
 }

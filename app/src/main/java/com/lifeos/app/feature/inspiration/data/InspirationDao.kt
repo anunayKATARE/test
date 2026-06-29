@@ -15,4 +15,7 @@ interface InspirationDao {
 
     @Query("DELETE FROM inspiration_items WHERE id = :id")
     suspend fun delete(id: String)
+
+    @Query("DELETE FROM inspiration_items WHERE profileId = :profileId")
+    suspend fun deleteAllByProfile(profileId: String)
 }

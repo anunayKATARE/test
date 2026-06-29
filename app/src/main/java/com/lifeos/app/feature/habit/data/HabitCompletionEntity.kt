@@ -16,6 +16,7 @@ data class HabitCompletionEntity(
     val date: LocalDate,
     val completed: Boolean,
     val note: String,
+    val profileId: String? = null,
 )
 
 fun HabitCompletionEntity.toDomain() = HabitCompletion(

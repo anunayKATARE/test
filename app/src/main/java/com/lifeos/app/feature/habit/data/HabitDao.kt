@@ -50,4 +50,10 @@ interface HabitDao {
             "WHERE completed = 1 AND date BETWEEN :startEpochDay AND :endEpochDay GROUP BY date",
     )
     suspend fun completionCountByDay(startEpochDay: Long, endEpochDay: Long): List<HabitDayCount>
+
+    @Query("DELETE FROM habits WHERE profileId = :profileId")
+    suspend fun deleteHabitsByProfile(profileId: String)
+
+    @Query("DELETE FROM habit_completions WHERE profileId = :profileId")
+    suspend fun deleteCompletionsByProfile(profileId: String)
 }

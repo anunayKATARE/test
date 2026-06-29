@@ -15,6 +15,7 @@ data class InspirationEntity(
     val imagePath: String?,
     val sortOrder: Int,
     val createdAt: Instant,
+    val profileId: String? = null,
 )
 
 fun InspirationEntity.toDomain() = InspirationItem(

@@ -20,6 +20,7 @@ data class HabitEntity(
     val categoryId: String?,
     val isArchived: Boolean,
     val createdAt: Instant,
+    val profileId: String? = null,
 )
 
 fun HabitEntity.toDomain() = Habit(

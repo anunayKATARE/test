@@ -21,4 +21,7 @@ interface SelfBeliefDao {
 
     @Query("SELECT strengthsThatRemain FROM self_belief_reflections WHERE strengthsThatRemain != ''")
     suspend fun allStrengths(): List<String>
+
+    @Query("DELETE FROM self_belief_reflections WHERE profileId = :profileId")
+    suspend fun deleteAllByProfile(profileId: String)
 }

@@ -38,4 +38,7 @@ interface TaskDao {
             "WHERE date BETWEEN :startEpochDay AND :endEpochDay GROUP BY date",
     )
     suspend fun totalCountByDay(startEpochDay: Long, endEpochDay: Long): List<TaskDayCount>
+
+    @Query("DELETE FROM tasks WHERE profileId = :profileId")
+    suspend fun deleteAllByProfile(profileId: String)
 }

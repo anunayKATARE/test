@@ -21,6 +21,7 @@ data class MoodEntryEntity(
     val recoveryTimeMinutes: Int?,
     val lessonsLearned: String,
     val categoryId: String?,
+    val profileId: String? = null,
 )
 
 fun MoodEntryEntity.toDomain() = MoodEntry(

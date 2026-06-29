@@ -22,4 +22,7 @@ interface ReflectionDao {
 
     @Query("DELETE FROM reflection_entries WHERE id = :id")
     suspend fun deleteById(id: String)
+
+    @Query("DELETE FROM reflection_entries WHERE profileId = :profileId")
+    suspend fun deleteAllByProfile(profileId: String)
 }

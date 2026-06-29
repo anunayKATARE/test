@@ -17,6 +17,7 @@ data class MentalToughnessEntity(
     val emotionAfter: String,
     val outcome: String,
     val lessonLearned: String,
+    val profileId: String? = null,
 )
 
 fun MentalToughnessEntity.toDomain() = MentalToughnessEntry(

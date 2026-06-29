@@ -14,6 +14,7 @@ data class TaskEntity(
     val date: LocalDate,
     val completed: Boolean,
     val createdAt: Instant,
+    val profileId: String? = null,
 )
 
 fun TaskEntity.toDomain() = Task(

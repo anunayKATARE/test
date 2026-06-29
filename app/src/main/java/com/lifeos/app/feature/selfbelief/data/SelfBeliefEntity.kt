@@ -16,6 +16,7 @@ data class SelfBeliefEntity(
     val friendAdvice: String,
     val strengthsThatRemain: String,
     val nextSmallAction: String,
+    val profileId: String? = null,
 )
 
 fun SelfBeliefEntity.toDomain() = SelfBeliefReflection(

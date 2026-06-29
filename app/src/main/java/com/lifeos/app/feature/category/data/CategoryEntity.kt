@@ -16,6 +16,7 @@ data class CategoryEntity(
     val isArchived: Boolean,
     val isHidden: Boolean,
     val createdAt: Instant,
+    val profileId: String? = null,
 )
 
 fun CategoryEntity.toDomain() = Category(

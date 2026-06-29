@@ -2,6 +2,8 @@ package com.lifeos.app.di
 
 import android.content.Context
 import androidx.room.Room
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
 import com.lifeos.app.core.database.AppDatabase
 import com.lifeos.app.feature.category.data.CategoryDao
 import com.lifeos.app.feature.goal.data.GoalDao
@@ -25,10 +27,23 @@ import javax.inject.Singleton
 @InstallIn(SingletonComponent::class)
 object DatabaseModule {
 
+    val MIGRATION_2_3 = object : Migration(2, 3) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            for (table in listOf(
+                "categories", "journal_entries", "mood_entries", "habits", "habit_completions",
+                "goals", "mental_toughness_entries", "self_belief_reflections", "reflection_entries",
+                "problems", "tasks", "inspiration_items",
+            )) {
+                db.execSQL("ALTER TABLE $table ADD COLUMN profileId TEXT")
+            }
+        }
+    }
+
     @Provides
     @Singleton
     fun provideAppDatabase(@ApplicationContext context: Context): AppDatabase =
         Room.databaseBuilder(context, AppDatabase::class.java, AppDatabase.DATABASE_NAME)
+            .addMigrations(MIGRATION_2_3)
             .fallbackToDestructiveMigration()
             .build()
 
