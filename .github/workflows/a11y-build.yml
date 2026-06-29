@@ -24,20 +24,24 @@ jobs:
       - name: Run domain unit tests
         run: ./gradlew :domain:test
 
+      - name: Assemble debug APK
+        run: ./gradlew :app:assembleDebug || true
+
       - name: Diagnose AAR resources
         run: |
-          ./gradlew :app:dependencies --configuration debugRuntimeClasspath > /tmp/deps.txt || true
-          echo "=== dependency tree matches ==="
-          grep -A2 -iE "cardview|constraintlayout|com\.google\.android\.material" /tmp/deps.txt || true
           echo "=== resolved AAR files ==="
           find ~/.gradle/caches/modules-2 -iname "*.aar" \( -ipath "*cardview*" -o -ipath "*constraintlayout*" -o -ipath "*material*" \) | sort
           echo "=== AAR contents ==="
           for f in $(find ~/.gradle/caches/modules-2 -iname "*.aar" \( -ipath "*cardview*1.0.0*" -o -ipath "*constraintlayout-2.1.4*" -o -ipath "*material-1.12.0*" \) | sort); do
             echo "-- $f --"
-            unzip -l "$f" | grep -iE "res/|classes.jar" | head -10
+            unzip -l "$f" | grep -iE "res/|classes.jar|AndroidManifest" | head -15
           done
+          echo "=== merged resources for activity_main ==="
+          find /home/runner/work/test/test/app/build/intermediates -iname "activity_main.xml" | sort
+          echo "=== compiled flat resources referencing menu/cardElevation ==="
+          find /home/runner/work/test/test/app/build/intermediates -iname "*.flat" 2>/dev/null | xargs -I{} basename {} | grep -iE "cardview|constraint|menu" | sort -u
 
-      - name: Assemble debug APK
+      - name: Fail if assembleDebug failed
         run: ./gradlew :app:assembleDebug
 
       - name: Upload test results
