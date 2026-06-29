@@ -52,19 +52,21 @@ jobs:
       - name: Run processDebugResources with --info logging
         run: ./gradlew :app:processDebugResources --info --rerun > /tmp/processDebugResources.log 2>&1 || true
 
+      - name: Show resolved dependency versions
+        run: |
+          ./gradlew :app:dependencies --configuration debugCompileClasspath > /tmp/deps.log 2>&1 || true
+          echo "=== cardview/constraintlayout/material entries in debugCompileClasspath ==="
+          grep -iE "cardview|constraintlayout|com.google.android.material" /tmp/deps.log || echo "NONE FOUND"
+
       - name: Show full AAPT2 link command
         run: |
-          lineno=$(grep -n "command = .*aapt2 link" /tmp/processDebugResources.log | head -1 | cut -d: -f1)
-          echo "=== aapt2 link command found at line $lineno ==="
-          if [ -n "$lineno" ]; then
-            sed -n "${lineno},$((lineno+400))p" /tmp/processDebugResources.log > /tmp/aapt2-link-cmd.txt
-            echo "=== full -R / static-library inputs (cardview/constraintlayout/material) ==="
-            grep -n -iE "cardview|constraintlayout|material-1.12|^-R |compiled" /tmp/aapt2-link-cmd.txt
-            echo "=== total -R entries ==="
-            grep -c "^-R " /tmp/aapt2-link-cmd.txt
-            echo "=== last 30 lines of the command block (where it likely ends) ==="
-            tail -30 /tmp/aapt2-link-cmd.txt
-          fi
+          echo "=== ALL -R entries in entire log (full static-library input list) ==="
+          grep -n "^-R " /tmp/processDebugResources.log || echo "NO -R LINES FOUND AT ALL"
+          echo "=== ALL lines mentioning cardview/constraintlayout/material anywhere in log, with context ==="
+          grep -n -iE "cardview|constraintlayout|material-1\.12|material/1\.12" /tmp/processDebugResources.log || echo "NONE FOUND IN FULL LOG"
+          echo "=== sample -I (framework) and total line count ==="
+          grep -n "^-I " /tmp/processDebugResources.log | head -3
+          wc -l /tmp/processDebugResources.log
 
       - name: Fail if assembleDebug failed
         run: ./gradlew :app:assembleDebug
