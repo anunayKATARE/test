@@ -49,8 +49,10 @@ jobs:
             done
           done
 
-      - name: Run processDebugResources with --info logging
-        run: ./gradlew :app:processDebugResources --info --rerun > /tmp/processDebugResources.log 2>&1 || true
+      - name: Run processDebugResources with --info logging (full clean rebuild)
+        run: |
+          ./gradlew :app:clean
+          ./gradlew :app:processDebugResources --info > /tmp/processDebugResources.log 2>&1 || true
 
       - name: Show resolved dependency versions
         run: |
@@ -58,15 +60,18 @@ jobs:
           echo "=== cardview/constraintlayout/material entries in debugCompileClasspath ==="
           grep -iE "cardview|constraintlayout|com.google.android.material" /tmp/deps.log || echo "NONE FOUND"
 
-      - name: Show full AAPT2 link command
+      - name: Show full AAPT2 link command and merge resources info
         run: |
+          echo "=== total line count ==="
+          wc -l /tmp/processDebugResources.log
           echo "=== ALL -R entries in entire log (full static-library input list) ==="
           grep -n "^-R " /tmp/processDebugResources.log || echo "NO -R LINES FOUND AT ALL"
           echo "=== ALL lines mentioning cardview/constraintlayout/material anywhere in log, with context ==="
           grep -n -iE "cardview|constraintlayout|material-1\.12|material/1\.12" /tmp/processDebugResources.log || echo "NONE FOUND IN FULL LOG"
-          echo "=== sample -I (framework) and total line count ==="
-          grep -n "^-I " /tmp/processDebugResources.log | head -3
-          wc -l /tmp/processDebugResources.log
+          echo "=== merge-resources related lines (skipped/ignored/duplicate/conflict) ==="
+          grep -n -iE "skip|ignor|duplicat|conflict|exclude" /tmp/processDebugResources.log | head -60
+          echo "=== lines mentioning 'Merging' or 'MergeResources' or resource set ==="
+          grep -n -iE "merging|mergeresources|resource set|ResourceSet" /tmp/processDebugResources.log | head -60
 
       - name: Fail if assembleDebug failed
         run: ./gradlew :app:assembleDebug
