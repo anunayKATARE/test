@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/nav_home"
+        android:icon="@drawable/ic_inspect_outline"
+        android:title="@string/tab_home" />
+    <item
+        android:id="@+id/nav_captured"
+        android:icon="@drawable/ic_captured"
+        android:title="@string/tab_captured" />
+</menu>
