@@ -24,6 +24,19 @@ jobs:
       - name: Run domain unit tests
         run: ./gradlew :domain:test
 
+      - name: Diagnose AAR resources
+        run: |
+          ./gradlew :app:dependencies --configuration debugRuntimeClasspath > /tmp/deps.txt || true
+          echo "=== dependency tree matches ==="
+          grep -A2 -iE "cardview|constraintlayout|com\.google\.android\.material" /tmp/deps.txt || true
+          echo "=== resolved AAR files ==="
+          find ~/.gradle/caches/modules-2 -iname "*.aar" \( -ipath "*cardview*" -o -ipath "*constraintlayout*" -o -ipath "*material*" \) | sort
+          echo "=== AAR contents ==="
+          for f in $(find ~/.gradle/caches/modules-2 -iname "*.aar" \( -ipath "*cardview*1.0.0*" -o -ipath "*constraintlayout-2.1.4*" -o -ipath "*material-1.12.0*" \) | sort); do
+            echo "-- $f --"
+            unzip -l "$f" | grep -iE "res/|classes.jar" | head -10
+          done
+
       - name: Assemble debug APK
         run: ./gradlew :app:assembleDebug
 
