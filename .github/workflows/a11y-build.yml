@@ -27,19 +27,39 @@ jobs:
       - name: Assemble debug APK
         run: ./gradlew :app:assembleDebug || true
 
-      - name: Diagnose AAR resources
+      - name: Extract attr declarations directly from AARs
         run: |
-          echo "=== resolved AAR files ==="
-          find ~/.gradle/caches/modules-2 -iname "*.aar" \( -ipath "*cardview*" -o -ipath "*constraintlayout*" -o -ipath "*material*" \) | sort
-          echo "=== AAR contents ==="
-          for f in $(find ~/.gradle/caches/modules-2 -iname "*.aar" \( -ipath "*cardview*1.0.0*" -o -ipath "*constraintlayout-2.1.4*" -o -ipath "*material-1.12.0*" \) | sort); do
-            echo "-- $f --"
-            unzip -l "$f" | grep -iE "res/|classes.jar|AndroidManifest" | head -15
+          cardview_aar=$(find ~/.gradle/caches/modules-2 -iname "cardview-1.0.0.aar" | head -1)
+          constraintlayout_aar=$(find ~/.gradle/caches/modules-2 -iname "constraintlayout-2.1.4.aar" | head -1)
+          material_aar=$(find ~/.gradle/caches/modules-2 -iname "material-1.12.0.aar" | head -1)
+          mkdir -p /tmp/aar-extract
+          for entry in "cardview $cardview_aar cardElevation cardCornerRadius" \
+                       "constraintlayout $constraintlayout_aar layout_constraintTop_toTopOf layout_constraintBottom_toTopOf layout_constraintBottom_toBottomOf" \
+                       "material $material_aar menu"; do
+            set -- $entry
+            name=$1; aar=$2; shift 2
+            echo "=== $name : $aar ==="
+            if [ -z "$aar" ]; then echo "AAR NOT FOUND"; continue; fi
+            unzip -p "$aar" res/values/values.xml > "/tmp/aar-extract/$name-values.xml" 2>/dev/null
+            if [ ! -s "/tmp/aar-extract/$name-values.xml" ]; then echo "no res/values/values.xml extracted"; continue; fi
+            wc -l "/tmp/aar-extract/$name-values.xml"
+            for attr in "$@"; do
+              echo "-- searching for attr: $attr --"
+              grep -o "<attr name=\"$attr\"[^>]*>" "/tmp/aar-extract/$name-values.xml" || echo "NOT FOUND: $attr"
+            done
           done
-          echo "=== merged resources for activity_main ==="
-          find /home/runner/work/test/test/app/build/intermediates -iname "activity_main.xml" | sort
-          echo "=== compiled flat resources referencing menu/cardElevation ==="
-          find /home/runner/work/test/test/app/build/intermediates -iname "*.flat" 2>/dev/null | xargs -I{} basename {} | grep -iE "cardview|constraint|menu" | sort -u
+
+      - name: Run processDebugResources with --info logging
+        run: ./gradlew :app:processDebugResources --info --rerun > /tmp/processDebugResources.log 2>&1 || true
+
+      - name: Show relevant AAPT2 link command and log excerpts
+        run: |
+          echo "=== aapt2 link invocations ==="
+          grep -n "aapt2.*link\|Compiling AAPT2\|compile-only\|-R " /tmp/processDebugResources.log | head -50
+          echo "=== lines mentioning cardview/constraintlayout/material AARs ==="
+          grep -n -iE "cardview|constraintlayout|material-1.12" /tmp/processDebugResources.log | head -100
+          echo "=== full tail of log (last 200 lines) ==="
+          tail -200 /tmp/processDebugResources.log
 
       - name: Fail if assembleDebug failed
         run: ./gradlew :app:assembleDebug
