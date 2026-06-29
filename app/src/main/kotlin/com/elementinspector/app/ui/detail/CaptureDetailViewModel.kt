@@ -6,6 +6,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.elementinspector.domain.model.CaptureDetail
+import com.elementinspector.domain.model.ElementSelection
 import com.elementinspector.domain.repository.CaptureRepository
 import kotlinx.coroutines.launch
 
@@ -20,6 +21,16 @@ class CaptureDetailViewModel(
     init {
         viewModelScope.launch {
             _detail.value = repository.getDetail(captureId)
+        }
+    }
+
+    /** Persists an edited selection list for the current capture and republishes it. */
+    fun saveSelections(selections: List<ElementSelection>) {
+        val current = _detail.value ?: return
+        val updated = current.copy(selections = selections)
+        viewModelScope.launch {
+            repository.save(updated)
+            _detail.value = updated
         }
     }
 

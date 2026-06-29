@@ -1,7 +1,6 @@
 package com.elementinspector.app.accessibility
 
 import android.accessibilityservice.AccessibilityService
-import android.graphics.Bitmap
 import android.view.accessibility.AccessibilityEvent
 import android.widget.Toast
 import com.elementinspector.app.ElementInspectorApp
@@ -9,8 +8,6 @@ import com.elementinspector.app.R
 import com.elementinspector.app.accessibility.overlay.OverlayManager
 import com.elementinspector.app.util.BitmapStorage
 import com.elementinspector.domain.model.CaptureDetail
-import com.elementinspector.domain.model.ElementNode
-import com.elementinspector.domain.model.ElementSelection
 import java.util.UUID
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -19,10 +16,13 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 
 /**
- * Thin lifecycle shell: wires up the overlay, the tree mapper and the
- * screenshot capturer, and drives the freeze -> inspect -> save/discard flow.
- * All rendering/window logic lives in [OverlayManager]; all persistence lives
- * behind [com.elementinspector.domain.repository.CaptureRepository].
+ * Thin lifecycle shell: wires up the bubble, the tree mapper and the
+ * screenshot capturer, and drives the freeze -> save flow. A tap on the
+ * bubble captures and persists everything by default; exploring the result
+ * and editing which elements are selected happens later, in the Captured
+ * tab, against the already-saved data. All rendering/window logic for the
+ * bubble lives in [OverlayManager]; all persistence lives behind
+ * [com.elementinspector.domain.repository.CaptureRepository].
  */
 class InspectorAccessibilityService : AccessibilityService() {
 
@@ -38,7 +38,12 @@ class InspectorAccessibilityService : AccessibilityService() {
         overlayManager = OverlayManager(this)
         treeMapper = DefaultAccessibilityTreeMapper()
         screenshotCapturer = AccessibilityScreenshotCapturer(this)
-        overlayManager.showBubble(onTap = ::startCaptureSession)
+        overlayManager.showBubble(
+            onTap = ::startCaptureSession,
+            onDismiss = {
+                Toast.makeText(this, getString(R.string.toast_bubble_dismissed), Toast.LENGTH_LONG).show()
+            },
+        )
     }
 
     override fun onAccessibilityEvent(event: AccessibilityEvent) {
@@ -61,7 +66,7 @@ class InspectorAccessibilityService : AccessibilityService() {
         }
         val tree = treeMapper.map(root)
         val sourcePackageName = lastSeenPackageName
-        val resolver = (application as ElementInspectorApp).container.elementAtPointResolver
+        val container = (application as ElementInspectorApp).container
 
         serviceScope.launch {
             val screenshot = screenshotCapturer.capture()
@@ -73,24 +78,7 @@ class InspectorAccessibilityService : AccessibilityService() {
                 ).show()
                 return@launch
             }
-            overlayManager.showInspectOverlay(
-                screenshot = screenshot,
-                tree = tree,
-                resolver = resolver,
-                onSave = { selections -> saveCapture(screenshot, tree, sourcePackageName, selections) },
-                onDiscard = { overlayManager.hideInspectOverlay() },
-            )
-        }
-    }
 
-    private fun saveCapture(
-        screenshot: Bitmap,
-        tree: ElementNode,
-        sourcePackageName: String?,
-        selections: List<ElementSelection>,
-    ) {
-        val container = (application as ElementInspectorApp).container
-        serviceScope.launch {
             val id = UUID.randomUUID().toString()
             val screenshotPath = BitmapStorage.saveScreenshot(this@InspectorAccessibilityService, id, screenshot)
             val detail = CaptureDetail(
@@ -101,10 +89,9 @@ class InspectorAccessibilityService : AccessibilityService() {
                 screenWidth = screenshot.width,
                 screenHeight = screenshot.height,
                 rootTree = tree,
-                selections = selections,
+                selections = emptyList(),
             )
             container.captureRepository.save(detail)
-            overlayManager.hideInspectOverlay()
             Toast.makeText(
                 this@InspectorAccessibilityService,
                 getString(R.string.toast_capture_saved),

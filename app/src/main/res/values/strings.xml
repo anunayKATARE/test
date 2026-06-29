@@ -10,9 +10,9 @@
     <string name="home_status_enabled">Accessibility service is running</string>
     <string name="home_status_disabled">Accessibility service is not enabled</string>
     <string name="home_enable_button">Open accessibility settings</string>
-    <string name="home_instructions">1. Enable the service below.\n2. A small bubble appears on top of every screen — drag it anywhere.\n3. Tap the bubble to freeze the current screen.\n4. Tap any element on the frozen screenshot to inspect it; tapping again picks the topmost element under your finger if several overlap.\n5. Tap Save to store the screenshot, the full accessibility tree, and every element you selected. Find it later in the Captured tab.</string>
+    <string name="home_instructions">1. Enable the service below.\n2. A small bubble appears on top of every screen — drag it anywhere.\n3. Tap the bubble to capture and save the current screen automatically (screenshot and full accessibility tree).\n4. Open the Captured tab and pick a capture to explore it and edit which elements are selected.\n5. Long-press the bubble to dismiss it; re-enable the accessibility service to bring it back.</string>
 
-    <string name="captured_empty">No captures yet. Use the floating bubble to freeze a screen and inspect elements.</string>
+    <string name="captured_empty">No captures yet. Use the floating bubble to capture a screen.</string>
 
     <string name="capture_detail_title">Capture</string>
     <string name="section_screenshot">Screenshot</string>
@@ -23,15 +23,17 @@
     <string name="selection_header">Element %1$d — tapped at (%2$d, %3$d)</string>
     <string name="no_selections">No elements were selected in this capture.</string>
 
+    <string name="action_edit_elements">Edit</string>
     <string name="overlay_save">Save</string>
     <string name="overlay_discard">Discard</string>
     <string name="overlay_add">Add</string>
-    <string name="overlay_hint">Tap an element to inspect it</string>
+    <string name="overlay_hint">Tap an element to select or deselect it</string>
     <string name="overlay_selection_count">%1$d selected</string>
 
     <string name="toast_capture_saved">Capture saved</string>
     <string name="toast_no_active_window">Could not read the current screen</string>
     <string name="toast_screenshot_failed">Screenshot capture failed</string>
+    <string name="toast_bubble_dismissed">Inspector bubble removed. Toggle the accessibility service off and on to show it again.</string>
 
     <string name="delete_capture">Delete</string>
     <string name="delete_capture_confirm_title">Delete this capture?</string>
