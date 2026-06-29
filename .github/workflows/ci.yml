@@ -2,7 +2,25 @@ name: CI
 
 on:
   push:
+    paths:
+      - 'app/**'
+      - 'domain/**'
+      - 'gradle/**'
+      - 'gradlew'
+      - 'gradlew.bat'
+      - 'build.gradle.kts'
+      - 'settings.gradle.kts'
+      - '.github/workflows/ci.yml'
   pull_request:
+    paths:
+      - 'app/**'
+      - 'domain/**'
+      - 'gradle/**'
+      - 'gradlew'
+      - 'gradlew.bat'
+      - 'build.gradle.kts'
+      - 'settings.gradle.kts'
+      - '.github/workflows/ci.yml'
   workflow_dispatch:
 
 permissions:
