@@ -6,11 +6,12 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
@@ -19,6 +20,7 @@ import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.RadioButtonUnchecked
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -42,7 +44,6 @@ import com.lifeos.app.core.common.DateTimeUtils
 import com.lifeos.app.core.ui.components.CalendarMonthGrid
 import com.lifeos.app.core.ui.components.LifeOSCard
 import com.lifeos.app.core.ui.components.LifeOSScaffold
-import com.lifeos.app.core.ui.components.SectionHeader
 import com.lifeos.app.feature.goal.domain.Goal
 import com.lifeos.app.feature.goal.presentation.GoalViewModel
 import com.lifeos.app.feature.habit.presentation.HabitViewModel
@@ -113,19 +114,21 @@ fun DashboardScreen(
                     )
                 }
             }
-            item { SectionHeader("Today's goals") }
-            if (state.todaysGoals.isEmpty()) {
-                item { Text("No goals for today.", modifier = Modifier.padding(horizontal = 16.dp)) }
-            } else {
-                items(state.todaysGoals.take(MAX_SECTION_ITEMS), key = { "goal_${it.id}" }) { goal ->
+            item {
+                DashboardSection(
+                    title = "Today's goals",
+                    items = state.todaysGoals.take(MAX_SECTION_ITEMS),
+                    emptyMessage = "No goals for today.",
+                ) { goal ->
                     GoalSummaryRow(goal, onClick = { selectedGoal = goal })
                 }
             }
-            item { SectionHeader("Today's habits") }
-            if (state.todaysHabits.isEmpty()) {
-                item { Text("No habits scheduled today.", modifier = Modifier.padding(horizontal = 16.dp)) }
-            } else {
-                items(state.todaysHabits.take(MAX_SECTION_ITEMS), key = { "habit_${it.habit.id}" }) { habitItem ->
+            item {
+                DashboardSection(
+                    title = "Today's habits",
+                    items = state.todaysHabits.take(MAX_SECTION_ITEMS),
+                    emptyMessage = "No habits scheduled today.",
+                ) { habitItem ->
                     HabitSummaryRow(
                         title = habitItem.habit.title,
                         completed = habitItem.completedToday,
@@ -134,19 +137,21 @@ fun DashboardScreen(
                     )
                 }
             }
-            item { SectionHeader("Recent moods") }
-            if (state.recentMoodEntries.isEmpty()) {
-                item { Text("No mood entries logged yet.", modifier = Modifier.padding(horizontal = 16.dp)) }
-            } else {
-                items(state.recentMoodEntries.take(MAX_SECTION_ITEMS), key = { "mood_${it.id}" }) { mood ->
+            item {
+                DashboardSection(
+                    title = "Recent moods",
+                    items = state.recentMoodEntries.take(MAX_SECTION_ITEMS),
+                    emptyMessage = "No mood entries logged yet.",
+                ) { mood ->
                     MoodSummaryRow(mood, onClick = { selectedMood = mood })
                 }
             }
-            item { SectionHeader("Open problems (${state.openProblems.size})") }
-            if (state.openProblems.isEmpty()) {
-                item { Text("No open problems.", modifier = Modifier.padding(horizontal = 16.dp)) }
-            } else {
-                items(state.openProblems.take(MAX_SECTION_ITEMS), key = { "problem_${it.id}" }) { problem ->
+            item {
+                DashboardSection(
+                    title = "Open problems (${state.openProblems.size})",
+                    items = state.openProblems.take(MAX_SECTION_ITEMS),
+                    emptyMessage = "No open problems.",
+                ) { problem ->
                     ProblemSummaryRow(problem, onClick = { selectedProblem = problem })
                 }
             }
@@ -157,9 +162,9 @@ fun DashboardScreen(
         GoalActionDialog(
             goal = goal,
             onDismiss = { selectedGoal = null },
-            onComplete = { goalViewModel.completeGoal(goal.id); viewModel.refresh(); selectedGoal = null },
-            onArchive = { goalViewModel.archiveGoal(goal.id); viewModel.refresh(); selectedGoal = null },
-            onDelete = { goalViewModel.deleteGoal(goal.id); viewModel.refresh(); selectedGoal = null },
+            onComplete = { goalViewModel.completeGoal(goal.id); selectedGoal = null },
+            onArchive = { goalViewModel.archiveGoal(goal.id); selectedGoal = null },
+            onDelete = { goalViewModel.deleteGoal(goal.id); selectedGoal = null },
         )
     }
     selectedHabit?.let { habitItem ->
@@ -167,58 +172,87 @@ fun DashboardScreen(
             item = habitItem,
             onDismiss = { selectedHabit = null },
             onToggle = { viewModel.toggleHabit(habitItem.habit, habitItem.completedToday); selectedHabit = null },
-            onDelete = { habitViewModel.deleteHabit(habitItem.habit.id); viewModel.refresh(); selectedHabit = null },
+            onDelete = { habitViewModel.deleteHabit(habitItem.habit.id); selectedHabit = null },
         )
     }
     selectedMood?.let { mood ->
         MoodDetailDialog(
             mood = mood,
             onDismiss = { selectedMood = null },
-            onDelete = { moodViewModel.deleteMood(mood.id); viewModel.refresh(); selectedMood = null },
+            onDelete = { moodViewModel.deleteMood(mood.id); selectedMood = null },
         )
     }
     selectedProblem?.let { problem ->
         ProblemActionDialog(
             problem = problem,
             onDismiss = { selectedProblem = null },
-            onRecordAttempt = { attempt, worked -> problemViewModel.recordAttempt(problem.id, attempt, worked); viewModel.refresh() },
-            onResolve = { problemViewModel.setStatus(problem.id, ProblemStatus.RESOLVED); viewModel.refresh(); selectedProblem = null },
-            onDelete = { problemViewModel.deleteProblem(problem.id); viewModel.refresh(); selectedProblem = null },
+            onRecordAttempt = { attempt, worked -> problemViewModel.recordAttempt(problem.id, attempt, worked) },
+            onResolve = { problemViewModel.setStatus(problem.id, ProblemStatus.RESOLVED); selectedProblem = null },
+            onDelete = { problemViewModel.deleteProblem(problem.id); selectedProblem = null },
         )
+    }
+}
+
+/**
+ * Groups a dashboard subsection's header, rows (or empty message) into a single [LifeOSCard]
+ * so each subsection reads as one distinct, bounded block rather than bare text.
+ */
+@Composable
+private fun <T> DashboardSection(
+    title: String,
+    items: List<T>,
+    emptyMessage: String,
+    row: @Composable (T) -> Unit,
+) {
+    LifeOSCard(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
+        Text(text = title, style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold))
+        Spacer(Modifier.height(8.dp))
+        if (items.isEmpty()) {
+            Text(
+                text = emptyMessage,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        } else {
+            items.forEachIndexed { index, item ->
+                if (index > 0) HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+                row(item)
+            }
+        }
     }
 }
 
 @Composable
 private fun GoalSummaryRow(goal: Goal, onClick: () -> Unit) {
-    LifeOSCard(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp).clickable(onClick = onClick)) {
-        Text(text = goal.title, style = MaterialTheme.typography.bodyLarge)
-    }
+    Text(
+        text = goal.title,
+        style = MaterialTheme.typography.bodyLarge,
+        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick).padding(vertical = 8.dp),
+    )
 }
 
 @Composable
 private fun HabitSummaryRow(title: String, completed: Boolean, onToggle: () -> Unit, onClick: () -> Unit) {
-    LifeOSCard(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp).clickable(onClick = onClick)) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(text = title, style = MaterialTheme.typography.bodyLarge)
-            IconButton(onClick = onToggle) {
-                Box(
-                    modifier = Modifier
-                        .size(28.dp)
-                        .clip(CircleShape)
-                        .background(if (completed) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Icon(
-                        imageVector = if (completed) Icons.Filled.CheckCircle else Icons.Filled.RadioButtonUnchecked,
-                        contentDescription = "Toggle habit",
-                        tint = if (completed) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(18.dp),
-                    )
-                }
+    Row(
+        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick).padding(vertical = 8.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(text = title, style = MaterialTheme.typography.bodyLarge)
+        IconButton(onClick = onToggle) {
+            Box(
+                modifier = Modifier
+                    .size(28.dp)
+                    .clip(CircleShape)
+                    .background(if (completed) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = if (completed) Icons.Filled.CheckCircle else Icons.Filled.RadioButtonUnchecked,
+                    contentDescription = "Toggle habit",
+                    tint = if (completed) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(18.dp),
+                )
             }
         }
     }
@@ -226,26 +260,23 @@ private fun HabitSummaryRow(title: String, completed: Boolean, onToggle: () -> U
 
 @Composable
 private fun MoodSummaryRow(mood: MoodEntry, onClick: () -> Unit) {
-    LifeOSCard(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp).clickable(onClick = onClick)) {
-        Text(
-            text = "${mood.emotion.name.lowercase()} · ${mood.intensity}/10",
-            style = MaterialTheme.typography.bodyLarge,
-        )
-    }
+    Text(
+        text = "${mood.emotion.name.lowercase()} · ${mood.intensity}/10",
+        style = MaterialTheme.typography.bodyLarge,
+        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick).padding(vertical = 8.dp),
+    )
 }
 
 @Composable
 private fun ProblemSummaryRow(problem: Problem, onClick: () -> Unit) {
-    LifeOSCard(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp).clickable(onClick = onClick)) {
-        Column {
-            Text(text = problem.title, style = MaterialTheme.typography.bodyLarge)
-            if (problem.attemptsMade.isNotEmpty()) {
-                Text(
-                    text = "${problem.attemptsMade.size} attempt(s)",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
+    Column(modifier = Modifier.fillMaxWidth().clickable(onClick = onClick).padding(vertical = 8.dp)) {
+        Text(text = problem.title, style = MaterialTheme.typography.bodyLarge)
+        if (problem.attemptsMade.isNotEmpty()) {
+            Text(
+                text = "${problem.attemptsMade.size} attempt(s)",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
     }
 }
