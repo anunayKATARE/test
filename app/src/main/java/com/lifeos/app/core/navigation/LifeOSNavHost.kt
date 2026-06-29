@@ -16,6 +16,7 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
+import androidx.navigation.compose.navigation
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.lifeos.app.feature.analytics.presentation.AnalyticsScreen
@@ -71,23 +72,25 @@ fun LifeOSNavHost() {
             composable(LifeOSRoutes.MOOD) { MoodScreen() }
             composable(LifeOSRoutes.HABITS) { HabitScreen() }
             composable(LifeOSRoutes.GOALS) { GoalScreen() }
-            composable(LifeOSRoutes.MORE) {
-                MoreScreen(onItemClick = { route -> navController.navigate(route) })
+            navigation(startDestination = LifeOSRoutes.MORE, route = LifeOSRoutes.MORE_GRAPH) {
+                composable(LifeOSRoutes.MORE) {
+                    MoreScreen(onItemClick = { route -> navController.navigate(route) })
+                }
+                composable(LifeOSRoutes.CALENDAR) {
+                    CalendarScreen(onDayClick = { date -> navController.navigate(LifeOSRoutes.dayDetail(date)) })
+                }
+                composable(
+                    LifeOSRoutes.DAY_DETAIL,
+                    arguments = listOf(navArgument("date") { type = NavType.StringType }),
+                ) { DayDetailScreen() }
+                composable(LifeOSRoutes.CATEGORIES) { CategoryScreen() }
+                composable(LifeOSRoutes.MENTAL_TOUGHNESS) { MentalToughnessScreen() }
+                composable(LifeOSRoutes.SELF_BELIEF) { SelfBeliefScreen() }
+                composable(LifeOSRoutes.REFLECTION) { ReflectionScreen() }
+                composable(LifeOSRoutes.PROBLEM_SOLVER) { ProblemScreen() }
+                composable(LifeOSRoutes.ANALYTICS) { AnalyticsScreen() }
+                composable(LifeOSRoutes.SEARCH) { SearchScreen() }
             }
-            composable(LifeOSRoutes.CALENDAR) {
-                CalendarScreen(onDayClick = { date -> navController.navigate(LifeOSRoutes.dayDetail(date)) })
-            }
-            composable(
-                LifeOSRoutes.DAY_DETAIL,
-                arguments = listOf(navArgument("date") { type = NavType.StringType }),
-            ) { DayDetailScreen() }
-            composable(LifeOSRoutes.CATEGORIES) { CategoryScreen() }
-            composable(LifeOSRoutes.MENTAL_TOUGHNESS) { MentalToughnessScreen() }
-            composable(LifeOSRoutes.SELF_BELIEF) { SelfBeliefScreen() }
-            composable(LifeOSRoutes.REFLECTION) { ReflectionScreen() }
-            composable(LifeOSRoutes.PROBLEM_SOLVER) { ProblemScreen() }
-            composable(LifeOSRoutes.ANALYTICS) { AnalyticsScreen() }
-            composable(LifeOSRoutes.SEARCH) { SearchScreen() }
         }
     }
 }

@@ -26,6 +26,7 @@ object LifeOSRoutes {
     const val SEARCH = "search"
     const val CALENDAR = "calendar"
     const val DAY_DETAIL = "day_detail/{date}"
+    const val MORE_GRAPH = "more_graph"
 
     fun dayDetail(date: LocalDate): String = "day_detail/$date"
 }
@@ -38,7 +39,7 @@ val bottomNavItems = listOf(
     BottomNavItem(LifeOSRoutes.MOOD, "Mood", Icons.Filled.Mood),
     BottomNavItem(LifeOSRoutes.HABITS, "Habits", Icons.Filled.CheckCircle),
     BottomNavItem(LifeOSRoutes.GOALS, "Goals", Icons.Filled.Flag),
-    BottomNavItem(LifeOSRoutes.MORE, "More", Icons.Filled.MoreHoriz),
+    BottomNavItem(LifeOSRoutes.MORE_GRAPH, "More", Icons.Filled.MoreHoriz),
 )
 
 data class MoreMenuItem(val route: String, val label: String)
