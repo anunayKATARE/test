@@ -4,6 +4,8 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -13,6 +15,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -26,6 +29,28 @@ import androidx.compose.ui.unit.dp
 @Composable
 fun LifeOSTopBar(title: String, actions: @Composable () -> Unit = {}) {
     TopAppBar(title = { Text(title) }, actions = { actions() })
+}
+
+/**
+ * Drop-in replacement for Material3's [Scaffold] for screens nested inside [LifeOSNavHost]'s
+ * bottom-navigation Scaffold. The outer Scaffold already consumes system bar insets via its
+ * NavigationBar; without this override every nested per-screen Scaffold re-applies its own
+ * default [Scaffold.contentWindowInsets], doubling up the bottom inset and leaving a dead gap
+ * above the bottom navigation bar.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun LifeOSScaffold(
+    topBar: @Composable () -> Unit = {},
+    floatingActionButton: @Composable () -> Unit = {},
+    content: @Composable (PaddingValues) -> Unit,
+) {
+    Scaffold(
+        topBar = topBar,
+        floatingActionButton = floatingActionButton,
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
+        content = content,
+    )
 }
 
 @Composable

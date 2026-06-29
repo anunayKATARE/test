@@ -21,7 +21,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -36,6 +35,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.lifeos.app.core.common.DateTimeUtils
 import com.lifeos.app.core.ui.components.EmptyState
+import com.lifeos.app.core.ui.components.LifeOSScaffold
 import com.lifeos.app.core.ui.components.LifeOSTopBar
 import com.lifeos.app.feature.selfbelief.domain.SelfBeliefReflection
 
@@ -56,7 +56,7 @@ fun SelfBeliefScreen(viewModel: SelfBeliefViewModel = hiltViewModel()) {
         return
     }
 
-    Scaffold(
+    LifeOSScaffold(
         topBar = { LifeOSTopBar(title = "Self-Belief") },
         floatingActionButton = {
             FloatingActionButton(onClick = { showAddForm = true }) {
@@ -111,7 +111,7 @@ private fun AddReflectionForm(
     var strengthsThatRemain by remember { mutableStateOf("") }
     var nextSmallAction by remember { mutableStateOf("") }
 
-    Scaffold(
+    LifeOSScaffold(
         topBar = {
             TopAppBar(
                 title = { Text("New reflection") },

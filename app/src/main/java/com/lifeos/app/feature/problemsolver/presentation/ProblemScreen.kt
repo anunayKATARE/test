@@ -19,7 +19,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -32,6 +31,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.lifeos.app.core.ui.components.EmptyState
+import com.lifeos.app.core.ui.components.LifeOSScaffold
 import com.lifeos.app.core.ui.components.LifeOSTopBar
 import com.lifeos.app.feature.problemsolver.domain.Problem
 import com.lifeos.app.feature.problemsolver.domain.ProblemStatus
@@ -43,7 +43,7 @@ fun ProblemScreen(viewModel: ProblemViewModel = hiltViewModel()) {
     var showAddDialog by remember { mutableStateOf(false) }
     var attemptDialogFor by remember { mutableStateOf<Problem?>(null) }
 
-    Scaffold(
+    LifeOSScaffold(
         topBar = { LifeOSTopBar(title = "Problem Solver") },
         floatingActionButton = {
             FloatingActionButton(onClick = { showAddDialog = true }) {

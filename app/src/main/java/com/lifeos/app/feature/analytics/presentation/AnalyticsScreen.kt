@@ -11,7 +11,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
@@ -23,6 +22,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.lifeos.app.core.ui.components.LifeOSCard
+import com.lifeos.app.core.ui.components.LifeOSScaffold
 import com.lifeos.app.core.ui.components.SectionHeader
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -30,7 +30,7 @@ import com.lifeos.app.core.ui.components.SectionHeader
 fun AnalyticsScreen(viewModel: AnalyticsViewModel = hiltViewModel()) {
     val state by viewModel.uiState.collectAsState()
 
-    Scaffold(topBar = { TopAppBar(title = { Text("Analytics") }) }) { padding ->
+    LifeOSScaffold(topBar = { TopAppBar(title = { Text("Analytics") }) }) { padding ->
         LazyColumn(modifier = Modifier.padding(padding).fillMaxWidth()) {
             item {
                 LifeOSCard(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {

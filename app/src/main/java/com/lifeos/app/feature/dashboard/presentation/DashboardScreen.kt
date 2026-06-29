@@ -20,7 +20,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
@@ -35,6 +34,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.lifeos.app.core.common.DateTimeUtils
 import com.lifeos.app.core.ui.components.CalendarMonthGrid
 import com.lifeos.app.core.ui.components.LifeOSCard
+import com.lifeos.app.core.ui.components.LifeOSScaffold
 import com.lifeos.app.core.ui.components.SectionHeader
 import com.lifeos.app.feature.goal.domain.Goal
 import com.lifeos.app.feature.inspiration.presentation.InspirationCarousel
@@ -46,7 +46,7 @@ import java.time.LocalDate
 fun DashboardScreen(viewModel: DashboardViewModel = hiltViewModel(), onDayClick: (LocalDate) -> Unit = {}) {
     val state by viewModel.uiState.collectAsState()
 
-    Scaffold(
+    LifeOSScaffold(
         topBar = { TopAppBar(title = { Text("LifeOS") }) },
     ) { padding ->
         LazyColumn(modifier = Modifier.padding(padding).fillMaxWidth()) {

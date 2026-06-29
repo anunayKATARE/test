@@ -21,7 +21,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -41,6 +40,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.lifeos.app.core.common.DateTimeUtils
 import com.lifeos.app.core.ui.components.EmptyState
 import com.lifeos.app.core.ui.components.LifeOSCard
+import com.lifeos.app.core.ui.components.LifeOSScaffold
 import com.lifeos.app.core.ui.components.LifeOSTopBar
 import com.lifeos.app.feature.inspiration.presentation.InspirationCarousel
 import kotlin.math.roundToInt
@@ -51,7 +51,7 @@ fun DayDetailScreen(viewModel: DayDetailViewModel = hiltViewModel()) {
     val dayItems by viewModel.items.collectAsState()
     var showAddTaskDialog by remember { mutableStateOf(false) }
 
-    Scaffold(
+    LifeOSScaffold(
         topBar = { LifeOSTopBar(title = DateTimeUtils.formatDisplayDate(viewModel.date)) },
         floatingActionButton = {
             FloatingActionButton(onClick = { showAddTaskDialog = true }) {

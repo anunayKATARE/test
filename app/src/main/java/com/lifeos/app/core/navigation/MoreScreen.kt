@@ -11,7 +11,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
@@ -19,11 +18,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.lifeos.app.core.ui.components.LifeOSCard
+import com.lifeos.app.core.ui.components.LifeOSScaffold
 
 @androidx.compose.material3.ExperimentalMaterial3Api
 @Composable
 fun MoreScreen(onItemClick: (String) -> Unit) {
-    Scaffold(topBar = { TopAppBar(title = { Text("More") }) }) { padding ->
+    LifeOSScaffold(topBar = { TopAppBar(title = { Text("More") }) }) { padding ->
         LazyColumn(modifier = Modifier.padding(padding).fillMaxWidth()) {
             items(moreMenuItems, key = { it.route }) { item ->
                 LifeOSCard(

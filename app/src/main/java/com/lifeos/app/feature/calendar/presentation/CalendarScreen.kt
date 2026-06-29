@@ -12,7 +12,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -25,6 +24,7 @@ import androidx.compose.ui.text.font.FontWeight
 import com.lifeos.app.core.common.DateTimeUtils
 import com.lifeos.app.core.ui.components.CalendarMonthGrid
 import com.lifeos.app.core.ui.components.LifeOSCard
+import com.lifeos.app.core.ui.components.LifeOSScaffold
 import com.lifeos.app.core.ui.components.LifeOSTopBar
 import java.time.LocalDate
 
@@ -34,7 +34,7 @@ fun CalendarScreen(viewModel: CalendarViewModel = hiltViewModel(), onDayClick: (
     val month by viewModel.month.collectAsState()
     val intensity by viewModel.intensityByDate.collectAsState()
 
-    Scaffold(topBar = { LifeOSTopBar(title = "Calendar") }) { padding ->
+    LifeOSScaffold(topBar = { LifeOSTopBar(title = "Calendar") }) { padding ->
         Column(modifier = Modifier.padding(padding).fillMaxWidth().padding(16.dp)) {
             LifeOSCard(modifier = Modifier.fillMaxWidth()) {
                 Row(

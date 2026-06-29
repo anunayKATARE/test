@@ -25,7 +25,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -42,6 +41,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.lifeos.app.core.ui.components.EmptyState
 import com.lifeos.app.core.ui.components.LifeOSCard
+import com.lifeos.app.core.ui.components.LifeOSScaffold
 import com.lifeos.app.core.ui.components.LifeOSTopBar
 import com.lifeos.app.core.ui.components.StreakBadge
 import com.lifeos.app.feature.habit.domain.HabitDifficulty
@@ -54,7 +54,7 @@ fun HabitScreen(viewModel: HabitViewModel = hiltViewModel()) {
     val habits by viewModel.habits.collectAsState()
     var showAddDialog by remember { mutableStateOf(false) }
 
-    Scaffold(
+    LifeOSScaffold(
         topBar = { LifeOSTopBar(title = "Habits") },
         floatingActionButton = {
             FloatingActionButton(onClick = { showAddDialog = true }) {
