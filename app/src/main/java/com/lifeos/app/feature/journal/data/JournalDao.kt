@@ -42,4 +42,10 @@ interface JournalDao {
 
     @Query("DELETE FROM journal_entries WHERE profileId = :profileId")
     suspend fun deleteAllByProfile(profileId: String)
+
+    @Query("SELECT * FROM journal_entries WHERE profileId IS NULL")
+    suspend fun getAllReal(): List<JournalEntryEntity>
+
+    @Query("DELETE FROM journal_entries WHERE profileId IS NULL")
+    suspend fun deleteAllReal()
 }

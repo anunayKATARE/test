@@ -25,4 +25,10 @@ interface ReflectionDao {
 
     @Query("DELETE FROM reflection_entries WHERE profileId = :profileId")
     suspend fun deleteAllByProfile(profileId: String)
+
+    @Query("SELECT * FROM reflection_entries WHERE profileId IS NULL")
+    suspend fun getAllReal(): List<ReflectionEntity>
+
+    @Query("DELETE FROM reflection_entries WHERE profileId IS NULL")
+    suspend fun deleteAllReal()
 }

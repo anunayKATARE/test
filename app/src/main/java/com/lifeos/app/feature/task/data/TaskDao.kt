@@ -41,4 +41,10 @@ interface TaskDao {
 
     @Query("DELETE FROM tasks WHERE profileId = :profileId")
     suspend fun deleteAllByProfile(profileId: String)
+
+    @Query("SELECT * FROM tasks WHERE profileId IS NULL")
+    suspend fun getAllReal(): List<TaskEntity>
+
+    @Query("DELETE FROM tasks WHERE profileId IS NULL")
+    suspend fun deleteAllReal()
 }

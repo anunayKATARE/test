@@ -42,4 +42,10 @@ interface MoodDao {
 
     @Query("DELETE FROM mood_entries WHERE profileId = :profileId")
     suspend fun deleteAllByProfile(profileId: String)
+
+    @Query("SELECT * FROM mood_entries WHERE profileId IS NULL")
+    suspend fun getAllReal(): List<MoodEntryEntity>
+
+    @Query("DELETE FROM mood_entries WHERE profileId IS NULL")
+    suspend fun deleteAllReal()
 }

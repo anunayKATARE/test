@@ -1,5 +1,7 @@
 package com.lifeos.app.di
 
+import com.lifeos.app.feature.backup.data.BackupRepositoryImpl
+import com.lifeos.app.feature.backup.domain.BackupRepository
 import com.lifeos.app.feature.category.data.CategoryRepositoryImpl
 import com.lifeos.app.feature.category.domain.CategoryRepository
 import com.lifeos.app.feature.goal.data.GoalRepositoryImpl
@@ -75,4 +77,8 @@ abstract class RepositoryModule {
     @Binds
     @Singleton
     abstract fun bindInspirationRepository(impl: InspirationRepositoryImpl): InspirationRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindBackupRepository(impl: BackupRepositoryImpl): BackupRepository
 }

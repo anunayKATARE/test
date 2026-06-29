@@ -27,6 +27,7 @@ import androidx.navigation.navArgument
 import com.lifeos.app.core.demo.DemoTourOverlay
 import com.lifeos.app.core.demo.DemoTourViewModel
 import com.lifeos.app.feature.analytics.presentation.AnalyticsScreen
+import com.lifeos.app.feature.backup.presentation.BackupScreen
 import com.lifeos.app.feature.calendar.presentation.CalendarScreen
 import com.lifeos.app.feature.calendar.presentation.DayDetailScreen
 import com.lifeos.app.feature.category.presentation.CategoryScreen
@@ -113,6 +114,7 @@ fun LifeOSNavHost() {
                     composable(LifeOSRoutes.ANALYTICS) { AnalyticsScreen() }
                     composable(LifeOSRoutes.SEARCH) { SearchScreen() }
                     composable(LifeOSRoutes.DEMO_MODE) { DemoModeScreen() }
+                    composable(LifeOSRoutes.BACKUP) { BackupScreen() }
                 }
             }
             tourProgress?.let { progress ->

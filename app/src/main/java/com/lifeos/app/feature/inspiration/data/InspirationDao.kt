@@ -18,4 +18,10 @@ interface InspirationDao {
 
     @Query("DELETE FROM inspiration_items WHERE profileId = :profileId")
     suspend fun deleteAllByProfile(profileId: String)
+
+    @Query("SELECT * FROM inspiration_items WHERE profileId IS NULL")
+    suspend fun getAllReal(): List<InspirationEntity>
+
+    @Query("DELETE FROM inspiration_items WHERE profileId IS NULL")
+    suspend fun deleteAllReal()
 }

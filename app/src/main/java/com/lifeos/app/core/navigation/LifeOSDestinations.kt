@@ -28,6 +28,7 @@ object LifeOSRoutes {
     const val DAY_DETAIL = "day_detail/{date}"
     const val MORE_GRAPH = "more_graph"
     const val DEMO_MODE = "demo_mode"
+    const val BACKUP = "backup"
 
     fun dayDetail(date: LocalDate): String = "day_detail/$date"
 }
@@ -55,4 +56,5 @@ val moreMenuItems = listOf(
     MoreMenuItem(LifeOSRoutes.ANALYTICS, "Analytics"),
     MoreMenuItem(LifeOSRoutes.SEARCH, "Search"),
     MoreMenuItem(LifeOSRoutes.DEMO_MODE, "Demo Mode"),
+    MoreMenuItem(LifeOSRoutes.BACKUP, "Backup & Restore"),
 )

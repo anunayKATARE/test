@@ -30,4 +30,10 @@ interface MentalToughnessDao {
 
     @Query("DELETE FROM mental_toughness_entries WHERE profileId = :profileId")
     suspend fun deleteAllByProfile(profileId: String)
+
+    @Query("SELECT * FROM mental_toughness_entries WHERE profileId IS NULL")
+    suspend fun getAllReal(): List<MentalToughnessEntity>
+
+    @Query("DELETE FROM mental_toughness_entries WHERE profileId IS NULL")
+    suspend fun deleteAllReal()
 }

@@ -28,4 +28,10 @@ interface ProblemDao {
 
     @Query("DELETE FROM problems WHERE profileId = :profileId")
     suspend fun deleteAllByProfile(profileId: String)
+
+    @Query("SELECT * FROM problems WHERE profileId IS NULL")
+    suspend fun getAllReal(): List<ProblemEntity>
+
+    @Query("DELETE FROM problems WHERE profileId IS NULL")
+    suspend fun deleteAllReal()
 }
