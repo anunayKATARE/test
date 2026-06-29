@@ -52,14 +52,19 @@ jobs:
       - name: Run processDebugResources with --info logging
         run: ./gradlew :app:processDebugResources --info --rerun > /tmp/processDebugResources.log 2>&1 || true
 
-      - name: Show relevant AAPT2 link command and log excerpts
+      - name: Show full AAPT2 link command
         run: |
-          echo "=== aapt2 link invocations ==="
-          grep -n "aapt2.*link\|Compiling AAPT2\|compile-only\|-R " /tmp/processDebugResources.log | head -50
-          echo "=== lines mentioning cardview/constraintlayout/material AARs ==="
-          grep -n -iE "cardview|constraintlayout|material-1.12" /tmp/processDebugResources.log | head -100
-          echo "=== full tail of log (last 200 lines) ==="
-          tail -200 /tmp/processDebugResources.log
+          lineno=$(grep -n "command = .*aapt2 link" /tmp/processDebugResources.log | head -1 | cut -d: -f1)
+          echo "=== aapt2 link command found at line $lineno ==="
+          if [ -n "$lineno" ]; then
+            sed -n "${lineno},$((lineno+400))p" /tmp/processDebugResources.log > /tmp/aapt2-link-cmd.txt
+            echo "=== full -R / static-library inputs (cardview/constraintlayout/material) ==="
+            grep -n -iE "cardview|constraintlayout|material-1.12|^-R |compiled" /tmp/aapt2-link-cmd.txt
+            echo "=== total -R entries ==="
+            grep -c "^-R " /tmp/aapt2-link-cmd.txt
+            echo "=== last 30 lines of the command block (where it likely ends) ==="
+            tail -30 /tmp/aapt2-link-cmd.txt
+          fi
 
       - name: Fail if assembleDebug failed
         run: ./gradlew :app:assembleDebug
