@@ -3,7 +3,9 @@ package com.lifeos.app.feature.inspiration.presentation
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -37,6 +39,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
@@ -62,6 +65,18 @@ fun InspirationCarousel(viewModel: InspirationViewModel = hiltViewModel(), modif
         }
     }
 
+    var itemPendingImageAttach by remember { mutableStateOf<InspirationItem?>(null) }
+    val attachImagePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickVisualMedia(),
+    ) { uri ->
+        val pendingItem = itemPendingImageAttach
+        if (uri != null && pendingItem != null) {
+            val path = ImageStorage.copyToInternalStorage(context, uri)
+            viewModel.attachImageToQuote(pendingItem, path)
+        }
+        itemPendingImageAttach = null
+    }
+
     Card(modifier = modifier.fillMaxWidth().height(180.dp)) {
         Box(modifier = Modifier.fillMaxSize()) {
             if (items.isEmpty()) {
@@ -75,7 +90,14 @@ fun InspirationCarousel(viewModel: InspirationViewModel = hiltViewModel(), modif
             } else {
                 val pagerState = rememberPagerState(pageCount = { items.size })
                 HorizontalPager(state = pagerState, modifier = Modifier.fillMaxSize()) { page ->
-                    InspirationPage(item = items[page], onDelete = { viewModel.delete(items[page].id) })
+                    InspirationPage(
+                        item = items[page],
+                        onDelete = { viewModel.delete(items[page].id) },
+                        onLongPressQuote = {
+                            itemPendingImageAttach = items[page]
+                            attachImagePickerLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+                        },
+                    )
                 }
             }
             IconButton(
@@ -124,8 +146,9 @@ fun InspirationCarousel(viewModel: InspirationViewModel = hiltViewModel(), modif
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun InspirationPage(item: InspirationItem, onDelete: () -> Unit) {
+private fun InspirationPage(item: InspirationItem, onDelete: () -> Unit, onLongPressQuote: () -> Unit) {
     Box(modifier = Modifier.fillMaxSize().padding(12.dp)) {
         when (item.type) {
             InspirationType.IMAGE -> AsyncImage(
@@ -134,18 +157,42 @@ private fun InspirationPage(item: InspirationItem, onDelete: () -> Unit) {
                 contentScale = ContentScale.Crop,
                 modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(8.dp)),
             )
-            InspirationType.QUOTE -> Column(
-                modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(8.dp)).padding(16.dp),
-                verticalArrangement = Arrangement.Center,
-            ) {
-                Text(text = "“${item.text}”", style = MaterialTheme.typography.bodyLarge)
-                if (item.author.isNotBlank()) {
-                    Text(
-                        text = "— ${item.author}",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(top = 8.dp),
-                    )
+            InspirationType.QUOTE -> {
+                val hasImage = item.imagePath != null
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(MaterialTheme.colorScheme.surfaceVariant)
+                        .combinedClickable(onClick = {}, onLongClick = onLongPressQuote),
+                ) {
+                    if (hasImage) {
+                        AsyncImage(
+                            model = java.io.File(item.imagePath!!),
+                            contentDescription = null,
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier.fillMaxSize(),
+                        )
+                        Box(modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.35f)))
+                    }
+                    Column(
+                        modifier = Modifier.fillMaxSize().padding(16.dp),
+                        verticalArrangement = Arrangement.Center,
+                    ) {
+                        Text(
+                            text = "“${item.text}”",
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = if (hasImage) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        if (item.author.isNotBlank()) {
+                            Text(
+                                text = "— ${item.author}",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = if (hasImage) Color.White.copy(alpha = 0.85f) else MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(top = 8.dp),
+                            )
+                        }
+                    }
                 }
             }
         }

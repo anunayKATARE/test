@@ -12,6 +12,7 @@ import com.lifeos.app.feature.habit.domain.UncompleteHabitUseCase
 import com.lifeos.app.feature.journal.domain.JournalRepository
 import com.lifeos.app.feature.mood.domain.MoodEntry
 import com.lifeos.app.feature.mood.domain.MoodRepository
+import com.lifeos.app.feature.problemsolver.domain.Problem
 import com.lifeos.app.feature.problemsolver.domain.ProblemRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.time.LocalDate
@@ -29,7 +30,7 @@ data class DashboardUiState(
     val todaysGoals: List<Goal> = emptyList(),
     val todaysHabits: List<TodayHabitUiModel> = emptyList(),
     val recentMoodEntries: List<MoodEntry> = emptyList(),
-    val openProblemsCount: Int = 0,
+    val openProblems: List<Problem> = emptyList(),
     val heatmapMonth: YearMonth = YearMonth.now(),
     val heatmap: Map<LocalDate, Int> = emptyMap(),
     val isLoading: Boolean = true,
@@ -94,7 +95,7 @@ class DashboardViewModel @Inject constructor(
                 todaysGoals = goals,
                 todaysHabits = habits.map { TodayHabitUiModel(it, completedIds.contains(it.id)) },
                 recentMoodEntries = moods,
-                openProblemsCount = openProblems.size,
+                openProblems = openProblems,
                 heatmapMonth = heatmapMonth,
                 heatmap = heatmap,
                 isLoading = false,

@@ -37,3 +37,11 @@ class DeleteInspirationItemUseCase @Inject constructor(
 ) {
     suspend operator fun invoke(id: String) = repository.delete(id)
 }
+
+class AttachImageToQuoteUseCase @Inject constructor(
+    private val repository: InspirationRepository,
+) {
+    suspend operator fun invoke(item: InspirationItem, imagePath: String) {
+        repository.upsert(item.copy(imagePath = imagePath))
+    }
+}

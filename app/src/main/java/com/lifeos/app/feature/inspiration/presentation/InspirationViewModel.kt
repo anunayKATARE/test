@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.lifeos.app.feature.inspiration.domain.AddImageUseCase
 import com.lifeos.app.feature.inspiration.domain.AddQuoteUseCase
+import com.lifeos.app.feature.inspiration.domain.AttachImageToQuoteUseCase
 import com.lifeos.app.feature.inspiration.domain.DeleteInspirationItemUseCase
 import com.lifeos.app.feature.inspiration.domain.InspirationItem
 import com.lifeos.app.feature.inspiration.domain.InspirationRepository
@@ -20,6 +21,7 @@ class InspirationViewModel @Inject constructor(
     private val addQuoteUseCase: AddQuoteUseCase,
     private val addImageUseCase: AddImageUseCase,
     private val deleteInspirationItemUseCase: DeleteInspirationItemUseCase,
+    private val attachImageToQuoteUseCase: AttachImageToQuoteUseCase,
 ) : ViewModel() {
 
     val items: StateFlow<List<InspirationItem>> = repository.observeAll()
@@ -35,5 +37,9 @@ class InspirationViewModel @Inject constructor(
 
     fun delete(id: String) {
         viewModelScope.launch { deleteInspirationItemUseCase(id) }
+    }
+
+    fun attachImageToQuote(item: InspirationItem, imagePath: String) {
+        viewModelScope.launch { attachImageToQuoteUseCase(item, imagePath) }
     }
 }
