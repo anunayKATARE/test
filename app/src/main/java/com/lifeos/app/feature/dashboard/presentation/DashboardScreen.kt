@@ -31,12 +31,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.lifeos.app.core.common.DateTimeUtils
-import com.lifeos.app.core.ui.components.ConsistencyHeatmap
+import com.lifeos.app.core.ui.components.CalendarMonthGrid
 import com.lifeos.app.core.ui.components.LifeOSCard
 import com.lifeos.app.core.ui.components.SectionHeader
 import com.lifeos.app.feature.goal.domain.Goal
 import com.lifeos.app.feature.inspiration.presentation.InspirationCarousel
 import com.lifeos.app.feature.mood.domain.MoodEntry
+import java.time.LocalDate
+import java.time.YearMonth
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -60,7 +62,13 @@ fun DashboardScreen(viewModel: DashboardViewModel = hiltViewModel()) {
             item {
                 LifeOSCard(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
                     Text(text = "Consistency", style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold))
-                    ConsistencyHeatmap(intensityByDate = state.heatmap, weeks = 12, modifier = Modifier.padding(top = 8.dp))
+                    val maxIntensity = (state.heatmap.values.maxOrNull() ?: 1).coerceAtLeast(1)
+                    CalendarMonthGrid(
+                        month = YearMonth.from(LocalDate.now()),
+                        intensityByDate = state.heatmap.mapValues { (_, count) -> (count.toFloat() / maxIntensity).coerceIn(0f, 1f) },
+                        onDayClick = {},
+                        modifier = Modifier.padding(top = 8.dp),
+                    )
                 }
             }
             item { SectionHeader("Today's goals") }
