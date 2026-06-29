@@ -8,7 +8,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.elementinspector.app.R
 import com.elementinspector.domain.model.ElementNode
 
-private data class TreeRow(val node: ElementNode, val depth: Int, val path: String)
+data class TreeRow(val node: ElementNode, val depth: Int, val path: String)
 
 /**
  * Flattens an [ElementNode] tree into a list of visible rows, expanding only
