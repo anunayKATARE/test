@@ -24,8 +24,12 @@ import com.lifeos.app.feature.reflection.data.ReflectionRepositoryImpl
 import com.lifeos.app.feature.reflection.domain.ReflectionRepository
 import com.lifeos.app.feature.selfbelief.data.SelfBeliefRepositoryImpl
 import com.lifeos.app.feature.selfbelief.domain.SelfBeliefRepository
+import com.lifeos.app.feature.plan.data.DayPlanRepositoryImpl
+import com.lifeos.app.feature.plan.domain.DayPlanRepository
 import com.lifeos.app.feature.task.data.TaskRepositoryImpl
 import com.lifeos.app.feature.task.domain.TaskRepository
+import com.lifeos.app.feature.timelog.data.TimeLogRepositoryImpl
+import com.lifeos.app.feature.timelog.domain.TimeLogRepository
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
@@ -87,4 +91,12 @@ abstract class RepositoryModule {
     @Binds
     @Singleton
     abstract fun bindCheckInRepository(impl: CheckInRepositoryImpl): CheckInRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindDayPlanRepository(impl: DayPlanRepositoryImpl): DayPlanRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindTimeLogRepository(impl: TimeLogRepositoryImpl): TimeLogRepository
 }

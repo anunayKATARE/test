@@ -407,6 +407,7 @@ private fun TaskEntity.toJson() = JSONObject().apply {
     put("date", date.toEpochDay())
     put("completed", completed)
     put("createdAt", createdAt.toEpochMilli())
+    put("triggers", stringListJson(triggers))
 }
 
 private fun JSONObject.toTaskEntity() = TaskEntity(
@@ -417,6 +418,7 @@ private fun JSONObject.toTaskEntity() = TaskEntity(
     completed = getBoolean("completed"),
     createdAt = Instant.ofEpochMilli(getLong("createdAt")),
     profileId = null,
+    triggers = if (has("triggers")) getJSONArray("triggers").toStringList() else emptyList(),
 )
 
 private fun InspirationEntity.toJson() = JSONObject().apply {

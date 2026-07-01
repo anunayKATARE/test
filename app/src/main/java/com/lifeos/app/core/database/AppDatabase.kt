@@ -18,6 +18,8 @@ import com.lifeos.app.feature.mentaltoughness.data.MentalToughnessDao
 import com.lifeos.app.feature.mentaltoughness.data.MentalToughnessEntity
 import com.lifeos.app.feature.mood.data.MoodDao
 import com.lifeos.app.feature.mood.data.MoodEntryEntity
+import com.lifeos.app.feature.plan.data.DayPlanDao
+import com.lifeos.app.feature.plan.data.DayPlanEntity
 import com.lifeos.app.feature.problemsolver.data.ProblemDao
 import com.lifeos.app.feature.problemsolver.data.ProblemEntity
 import com.lifeos.app.feature.reflection.data.ReflectionDao
@@ -31,6 +33,8 @@ import com.lifeos.app.feature.profile.data.ProfileDao
 import com.lifeos.app.feature.profile.data.ProfileEntity
 import com.lifeos.app.feature.task.data.TaskDao
 import com.lifeos.app.feature.task.data.TaskEntity
+import com.lifeos.app.feature.timelog.data.TimeLogDao
+import com.lifeos.app.feature.timelog.data.TimeLogEntity
 
 @Database(
     entities = [
@@ -49,8 +53,10 @@ import com.lifeos.app.feature.task.data.TaskEntity
         CheckInSessionEntity::class,
         CheckInCommitmentEntity::class,
         ProfileEntity::class,
+        DayPlanEntity::class,
+        TimeLogEntity::class,
     ],
-    version = 6,
+    version = 7,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)
@@ -68,6 +74,8 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun inspirationDao(): InspirationDao
     abstract fun checkInDao(): CheckInDao
     abstract fun profileDao(): ProfileDao
+    abstract fun dayPlanDao(): DayPlanDao
+    abstract fun timeLogDao(): TimeLogDao
 
     companion object {
         const val DATABASE_NAME = "lifeos.db"

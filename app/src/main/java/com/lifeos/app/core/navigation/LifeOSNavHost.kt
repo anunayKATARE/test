@@ -40,10 +40,17 @@ import com.lifeos.app.feature.habit.presentation.HabitScreen
 import com.lifeos.app.feature.journal.presentation.JournalScreen
 import com.lifeos.app.feature.mentaltoughness.presentation.MentalToughnessScreen
 import com.lifeos.app.feature.mood.presentation.MoodScreen
+import com.lifeos.app.feature.plan.presentation.PlanDayScreen
+import com.lifeos.app.feature.plan.presentation.PlanReminderDialog
+import com.lifeos.app.feature.plan.presentation.PlanReminderViewModel
 import com.lifeos.app.feature.problemsolver.presentation.ProblemScreen
 import com.lifeos.app.feature.reflection.presentation.ReflectionScreen
 import com.lifeos.app.feature.search.presentation.SearchScreen
 import com.lifeos.app.feature.selfbelief.presentation.SelfBeliefScreen
+import com.lifeos.app.feature.task.presentation.TaskScreen
+import com.lifeos.app.feature.timelog.presentation.TimeLogPromptDialog
+import com.lifeos.app.feature.timelog.presentation.TimeLogPromptViewModel
+import com.lifeos.app.feature.timelog.presentation.TimeLogScreen
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -53,6 +60,10 @@ fun LifeOSNavHost() {
     val tourProgress by tourViewModel.progress.collectAsStateWithLifecycle()
     val checkInViewModel: CheckInViewModel = hiltViewModel()
     val checkInState by checkInViewModel.uiState.collectAsStateWithLifecycle()
+    val planReminderViewModel: PlanReminderViewModel = hiltViewModel()
+    val showPlanReminder by planReminderViewModel.showDialog.collectAsStateWithLifecycle()
+    val timeLogPromptViewModel: TimeLogPromptViewModel = hiltViewModel()
+    val showTimeLogPrompt by timeLogPromptViewModel.showPrompt.collectAsStateWithLifecycle()
 
     LaunchedEffect(checkInState.activeSession?.isOverdue) {
         if (checkInState.activeSession?.isOverdue == true) checkInViewModel.openDialog()
@@ -107,6 +118,11 @@ fun LifeOSNavHost() {
                     composable(LifeOSRoutes.MORE) {
                         MoreScreen(onItemClick = { route -> navController.navigate(route) })
                     }
+                    composable(LifeOSRoutes.TASKS) { TaskScreen() }
+                    composable(LifeOSRoutes.PLAN_DAY) {
+                        PlanDayScreen(onBack = { navController.popBackStack() })
+                    }
+                    composable(LifeOSRoutes.TIME_LOG) { TimeLogScreen() }
                     composable(LifeOSRoutes.CALENDAR) {
                         CalendarScreen(onDayClick = { date -> navController.navigate(LifeOSRoutes.dayDetail(date)) })
                     }
@@ -125,6 +141,7 @@ fun LifeOSNavHost() {
                     composable(LifeOSRoutes.BACKUP) { BackupScreen() }
                 }
             }
+
             if (checkInState.showDialog) {
                 CheckInDialog(
                     activeSession = checkInState.activeSession,
@@ -141,6 +158,26 @@ fun LifeOSNavHost() {
                     buildFreeText = checkInViewModel::buildFreeTextCommitment,
                 )
             }
+
+            if (showPlanReminder) {
+                PlanReminderDialog(
+                    onPlanNow = {
+                        planReminderViewModel.dismiss()
+                        navController.navigate(LifeOSRoutes.PLAN_DAY)
+                    },
+                    onSnooze30 = { planReminderViewModel.snooze(30) },
+                    onSnooze60 = { planReminderViewModel.snooze(60) },
+                    onDismiss = planReminderViewModel::dismiss,
+                )
+            }
+
+            if (showTimeLogPrompt) {
+                TimeLogPromptDialog(
+                    onDismiss = timeLogPromptViewModel::dismiss,
+                    viewModel = timeLogPromptViewModel,
+                )
+            }
+
             tourProgress?.let { progress ->
                 DemoTourOverlay(
                     progress = progress,

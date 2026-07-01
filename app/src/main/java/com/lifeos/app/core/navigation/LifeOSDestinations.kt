@@ -29,6 +29,9 @@ object LifeOSRoutes {
     const val MORE_GRAPH = "more_graph"
     const val DEMO_MODE = "demo_mode"
     const val BACKUP = "backup"
+    const val TASKS = "tasks"
+    const val PLAN_DAY = "plan_day"
+    const val TIME_LOG = "time_log"
 
     fun dayDetail(date: LocalDate): String = "day_detail/$date"
 }
@@ -47,6 +50,9 @@ val bottomNavItems = listOf(
 data class MoreMenuItem(val route: String, val label: String)
 
 val moreMenuItems = listOf(
+    MoreMenuItem(LifeOSRoutes.TASKS, "Tasks"),
+    MoreMenuItem(LifeOSRoutes.PLAN_DAY, "Plan Your Day"),
+    MoreMenuItem(LifeOSRoutes.TIME_LOG, "Time Log"),
     MoreMenuItem(LifeOSRoutes.CALENDAR, "Calendar"),
     MoreMenuItem(LifeOSRoutes.CATEGORIES, "Categories"),
     MoreMenuItem(LifeOSRoutes.MENTAL_TOUGHNESS, "Mental Toughness"),

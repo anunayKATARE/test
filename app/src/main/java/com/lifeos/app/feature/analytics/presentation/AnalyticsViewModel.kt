@@ -9,6 +9,7 @@ import com.lifeos.app.feature.habit.domain.HabitRepository
 import com.lifeos.app.feature.journal.domain.JournalRepository
 import com.lifeos.app.feature.mood.domain.Emotion
 import com.lifeos.app.feature.mood.domain.MoodRepository
+import com.lifeos.app.feature.task.domain.TaskRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.time.Instant
 import java.time.temporal.ChronoUnit
@@ -27,6 +28,7 @@ data class AnalyticsUiState(
     val habitStats: List<HabitCompletionStat> = emptyList(),
     val goalsByStatus: Map<GoalStatus, Int> = emptyMap(),
     val totalJournalEntries: Int = 0,
+    val taskTriggerFailures: Map<String, Int> = emptyMap(),
     val isLoading: Boolean = true,
 )
 
@@ -36,6 +38,7 @@ class AnalyticsViewModel @Inject constructor(
     private val habitRepository: HabitRepository,
     private val goalRepository: GoalRepository,
     private val journalRepository: JournalRepository,
+    private val taskRepository: TaskRepository,
     private val calculateHabitStatsUseCase: CalculateHabitStatsUseCase,
 ) : ViewModel() {
 
@@ -57,6 +60,7 @@ class AnalyticsViewModel @Inject constructor(
             val goals = goalRepository.observeAllGoals().first()
             val goalsByStatus = goals.groupingBy { it.status }.eachCount()
             val journalEntries = journalRepository.observeAll().first()
+            val taskTriggerFailures = taskRepository.getTriggerFailureCounts()
 
             _uiState.value = AnalyticsUiState(
                 emotionFrequency = emotionFrequency,
@@ -64,6 +68,7 @@ class AnalyticsViewModel @Inject constructor(
                 habitStats = habitStats,
                 goalsByStatus = goalsByStatus,
                 totalJournalEntries = journalEntries.size,
+                taskTriggerFailures = taskTriggerFailures,
                 isLoading = false,
             )
         }

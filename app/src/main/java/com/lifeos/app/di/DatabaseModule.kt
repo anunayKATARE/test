@@ -19,6 +19,8 @@ import com.lifeos.app.feature.problemsolver.data.ProblemDao
 import com.lifeos.app.feature.reflection.data.ReflectionDao
 import com.lifeos.app.feature.selfbelief.data.SelfBeliefDao
 import com.lifeos.app.feature.task.data.TaskDao
+import com.lifeos.app.feature.plan.data.DayPlanDao
+import com.lifeos.app.feature.timelog.data.TimeLogDao
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -95,6 +97,32 @@ object DatabaseModule {
         }
     }
 
+    val MIGRATION_6_7 = object : Migration(6, 7) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE tasks ADD COLUMN triggers TEXT NOT NULL DEFAULT ''")
+            db.execSQL(
+                """CREATE TABLE IF NOT EXISTS day_plans (
+                    id TEXT NOT NULL PRIMARY KEY,
+                    forDate INTEGER NOT NULL,
+                    plannedAt INTEGER NOT NULL,
+                    selectedTaskIds TEXT NOT NULL DEFAULT '',
+                    intentions TEXT NOT NULL DEFAULT '',
+                    profileId TEXT
+                )""",
+            )
+            db.execSQL(
+                """CREATE TABLE IF NOT EXISTS time_logs (
+                    id TEXT NOT NULL PRIMARY KEY,
+                    startedAt INTEGER NOT NULL,
+                    endedAt INTEGER,
+                    linkedTaskId TEXT,
+                    chore TEXT,
+                    profileId TEXT
+                )""",
+            )
+        }
+    }
+
     private val ON_CREATE_CALLBACK = object : RoomDatabase.Callback() {
         override fun onCreate(db: SupportSQLiteDatabase) {
             super.onCreate(db)
@@ -108,7 +136,7 @@ object DatabaseModule {
     @Singleton
     fun provideAppDatabase(@ApplicationContext context: Context): AppDatabase =
         Room.databaseBuilder(context, AppDatabase::class.java, AppDatabase.DATABASE_NAME)
-            .addMigrations(MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
+            .addMigrations(MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7)
             .addCallback(ON_CREATE_CALLBACK)
             .fallbackToDestructiveMigration()
             .build()
@@ -151,4 +179,10 @@ object DatabaseModule {
 
     @Provides
     fun provideProfileDao(db: AppDatabase): ProfileDao = db.profileDao()
+
+    @Provides
+    fun provideDayPlanDao(db: AppDatabase): DayPlanDao = db.dayPlanDao()
+
+    @Provides
+    fun provideTimeLogDao(db: AppDatabase): TimeLogDao = db.timeLogDao()
 }

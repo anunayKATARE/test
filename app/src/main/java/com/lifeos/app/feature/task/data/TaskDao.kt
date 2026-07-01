@@ -47,4 +47,7 @@ interface TaskDao {
 
     @Query("DELETE FROM tasks WHERE profileId IS NULL")
     suspend fun deleteAllReal()
+
+    @Query("SELECT * FROM tasks WHERE completed = 0 AND date < :todayEpochDay AND profileId = :profileId")
+    suspend fun getOverdueIncompleteTasks(todayEpochDay: Long, profileId: String): List<TaskEntity>
 }

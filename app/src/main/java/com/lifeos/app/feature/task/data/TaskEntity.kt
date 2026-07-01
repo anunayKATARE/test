@@ -15,6 +15,7 @@ data class TaskEntity(
     val completed: Boolean,
     val createdAt: Instant,
     val profileId: String? = null,
+    val triggers: List<String> = emptyList(),
 )
 
 fun TaskEntity.toDomain() = Task(
@@ -24,6 +25,7 @@ fun TaskEntity.toDomain() = Task(
     date = date,
     completed = completed,
     createdAt = createdAt,
+    triggers = triggers,
 )
 
 fun Task.toEntity() = TaskEntity(
@@ -33,4 +35,5 @@ fun Task.toEntity() = TaskEntity(
     date = date,
     completed = completed,
     createdAt = createdAt,
+    triggers = triggers,
 )

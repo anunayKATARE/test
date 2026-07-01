@@ -66,6 +66,17 @@ fun AnalyticsScreen(viewModel: AnalyticsViewModel = hiltViewModel()) {
             items(state.goalsByStatus.entries.toList()) { (status, count) ->
                 BarRow(label = status.name, value = count, maxValue = state.goalsByStatus.values.maxOrNull() ?: 1)
             }
+
+            if (state.taskTriggerFailures.isNotEmpty()) {
+                item { SectionHeader("Task failure triggers") }
+                items(state.taskTriggerFailures.entries.toList()) { (trigger, count) ->
+                    BarRow(
+                        label = trigger,
+                        value = count,
+                        maxValue = state.taskTriggerFailures.values.maxOrNull() ?: 1,
+                    )
+                }
+            }
         }
     }
 }

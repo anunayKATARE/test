@@ -10,4 +10,5 @@ data class Task(
     val date: LocalDate,
     val completed: Boolean = false,
     val createdAt: Instant = Instant.now(),
+    val triggers: List<String> = emptyList(),
 )
