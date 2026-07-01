@@ -1,5 +1,9 @@
 package com.lifeos.app.core.navigation
 
+import android.Manifest
+import android.content.pm.PackageManager
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -13,6 +17,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavDestination.Companion.hierarchy
@@ -64,6 +69,18 @@ fun LifeOSNavHost() {
     val showPlanReminder by planReminderViewModel.showDialog.collectAsStateWithLifecycle()
     val timeLogPromptViewModel: TimeLogPromptViewModel = hiltViewModel()
     val showTimeLogPrompt by timeLogPromptViewModel.showPrompt.collectAsStateWithLifecycle()
+
+    val context = LocalContext.current
+    val calendarPermLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { /* Grant is system-wide; TaskViewModel reads hasPermission() on next creation */ }
+    LaunchedEffect(Unit) {
+        if (context.checkSelfPermission(Manifest.permission.READ_CALENDAR)
+            != PackageManager.PERMISSION_GRANTED
+        ) {
+            calendarPermLauncher.launch(Manifest.permission.READ_CALENDAR)
+        }
+    }
 
     LaunchedEffect(checkInState.activeSession?.isOverdue) {
         if (checkInState.activeSession?.isOverdue == true) checkInViewModel.openDialog()

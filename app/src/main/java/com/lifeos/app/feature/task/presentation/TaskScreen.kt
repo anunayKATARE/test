@@ -57,7 +57,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -257,19 +256,23 @@ private fun DayBusyBar(events: List<CalendarEvent>, date: LocalDate) {
     val busyColor = MaterialTheme.colorScheme.errorContainer
     val nonAllDay = events.filter { !it.isAllDay }
 
-    // Hour-label row: 7am 9am 11am 1pm 3pm 5pm 7pm 10pm
-    Row(modifier = Modifier.fillMaxWidth()) {
-        listOf("7am", "9am", "11am", "1pm", "3pm", "5pm", "7pm", "10pm").forEach { label ->
+    // Proportional hour labels: each placed at the exact fractional position it represents
+    val windowHours = (windowEndHour - windowStartHour).toFloat()
+    val hourLabels = listOf(7 to "7am", 9 to "9am", 11 to "11am", 13 to "1pm",
+        15 to "3pm", 17 to "5pm", 19 to "7pm", 22 to "10pm")
+    BoxWithConstraints(modifier = Modifier.fillMaxWidth().padding(bottom = 2.dp)) {
+        hourLabels.forEach { (hour, label) ->
+            val frac = (hour - windowStartHour) / windowHours
             Text(
                 label,
-                modifier = Modifier.weight(1f),
+                modifier = Modifier
+                    .align(Alignment.TopStart)
+                    .offset(x = (maxWidth * frac).coerceAtMost(maxWidth - 20.dp)),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = TextAlign.Center,
             )
         }
     }
-    Spacer(Modifier.height(2.dp))
 
     BoxWithConstraints(
         modifier = Modifier

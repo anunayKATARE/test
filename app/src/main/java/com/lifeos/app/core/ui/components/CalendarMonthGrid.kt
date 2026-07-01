@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -70,11 +71,7 @@ private fun CalendarDayCell(
 ) {
     val baseColor = MaterialTheme.colorScheme.primary
     val emptyColor = MaterialTheme.colorScheme.surfaceVariant
-    val backgroundColor = when {
-        fraction == null -> Color.Transparent
-        fraction <= 0f -> emptyColor
-        else -> baseColor.copy(alpha = (0.25f + 0.75f * fraction).coerceIn(0.25f, 1f))
-    }
+    val containerColor = if (fraction != null) emptyColor else Color.Transparent
     val isDark = fraction != null && fraction > 0.5f
     val textColor = when {
         !inCurrentMonth -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
@@ -87,10 +84,24 @@ private fun CalendarDayCell(
             .padding(2.dp)
             .aspectRatio(1f)
             .clip(RoundedCornerShape(6.dp))
-            .background(backgroundColor)
+            .background(containerColor)
             .clickable(onClick = onClick),
-        contentAlignment = Alignment.Center,
     ) {
-        Text(text = date.dayOfMonth.toString(), style = MaterialTheme.typography.bodySmall, color = textColor)
+        // Liquid-level fill from the bottom — height proportional to completion fraction
+        if (fraction != null && fraction > 0f) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .fillMaxHeight(fraction.coerceIn(0f, 1f))
+                    .background(baseColor)
+                    .align(Alignment.BottomCenter),
+            )
+        }
+        Text(
+            text = date.dayOfMonth.toString(),
+            style = MaterialTheme.typography.bodySmall,
+            color = textColor,
+            modifier = Modifier.align(Alignment.Center),
+        )
     }
 }

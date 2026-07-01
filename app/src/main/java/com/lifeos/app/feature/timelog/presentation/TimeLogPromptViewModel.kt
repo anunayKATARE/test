@@ -8,6 +8,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import java.time.Instant
 import java.util.UUID
 import javax.inject.Inject
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -15,6 +16,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 private const val THIRTY_MIN_MILLIS = 30 * 60_000L
+private const val TEN_MIN_MILLIS = 10 * 60_000L
 
 @HiltViewModel
 class TimeLogPromptViewModel @Inject constructor(
@@ -32,6 +34,14 @@ class TimeLogPromptViewModel @Inject constructor(
         val activeTimer = timeLogRepository.observeActiveTimer().first()
         if (activeTimer != null) return
         val lastEntry = timeLogRepository.getLastEntryMillis()
+        if (lastEntry == 0L) {
+            // Fresh install — wait 10 minutes before the first nudge
+            delay(TEN_MIN_MILLIS)
+            if (timeLogRepository.observeActiveTimer().first() == null) {
+                _showPrompt.value = true
+            }
+            return
+        }
         if (System.currentTimeMillis() - lastEntry >= THIRTY_MIN_MILLIS) {
             _showPrompt.value = true
         }
