@@ -6,6 +6,9 @@ import com.lifeos.app.feature.calendar.domain.AvailabilityService
 import com.lifeos.app.feature.calendar.domain.CalendarEvent
 import com.lifeos.app.feature.calendar.domain.CalendarRepository
 import com.lifeos.app.feature.calendar.domain.FreeSlot
+import com.lifeos.app.feature.habit.domain.Habit
+import com.lifeos.app.feature.habit.domain.HabitRepository
+import com.lifeos.app.feature.habit.domain.HabitScheduleType
 import com.lifeos.app.feature.task.domain.Task
 import com.lifeos.app.feature.task.domain.TaskRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -20,9 +23,17 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+
+data class HabitDayItem(
+    val id: String,
+    val title: String,
+    val triggers: List<String>,
+    val completedToday: Boolean,
+)
 
 data class TaskFormState(
     val title: String = "",
@@ -42,6 +53,7 @@ data class TaskUiState(
     val calendarEvents: List<CalendarEvent> = emptyList(),
     val freeSlots: List<FreeSlot> = emptyList(),
     val calendarPermissionGranted: Boolean = false,
+    val scheduledHabits: List<HabitDayItem> = emptyList(),
 )
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -50,6 +62,7 @@ class TaskViewModel @Inject constructor(
     private val taskRepository: TaskRepository,
     private val calendarRepository: CalendarRepository,
     private val availabilityService: AvailabilityService,
+    private val habitRepository: HabitRepository,
 ) : ViewModel() {
 
     private val _selectedDate = MutableStateFlow(LocalDate.now())
@@ -61,27 +74,49 @@ class TaskViewModel @Inject constructor(
         TaskUiState(calendarPermissionGranted = _permissionGranted.value),
     )
 
-    val uiState: StateFlow<TaskUiState> = combine(
-        _selectedDate.flatMapLatest { taskRepository.observeTasksForDate(it) },
+    private fun isHabitScheduledOn(habit: Habit, date: LocalDate): Boolean = when (habit.scheduleType) {
+        HabitScheduleType.DAILY, HabitScheduleType.WEEKLY, HabitScheduleType.MONTHLY -> true
+        HabitScheduleType.CUSTOM -> habit.customDaysOfWeek.contains(date.dayOfWeek.value)
+    }
+
+    private val _habitItems: StateFlow<List<HabitDayItem>> = combine(
         _selectedDate,
-        // When either date or permission changes, re-subscribe to the calendar Flow
-        combine(_selectedDate, _permissionGranted) { date, granted -> date to granted }
-            .flatMapLatest { (date, granted) ->
-                if (granted) calendarRepository.observeEventsForDay(date)
-                else flowOf(emptyList())
-            },
-        _permissionGranted,
-        _formAndSheet,
-    ) { tasks, date, events, granted, formState ->
-        val slots = availabilityService.findFreeSlots(events, date)
-        formState.copy(
-            tasks = tasks,
-            selectedDate = date,
-            calendarEvents = events,
-            freeSlots = slots,
-            calendarPermissionGranted = granted,
-        )
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), TaskUiState())
+        habitRepository.observeActiveHabits(),
+    ) { date, habits ->
+        habits.filter { isHabitScheduledOn(it, date) } to date
+    }.flatMapLatest { (filtered, date) ->
+        if (filtered.isEmpty()) flowOf(emptyList())
+        else habitRepository.observeCompletionsOn(date).map { completions ->
+            val completedIds = completions.filter { it.completed }.map { it.habitId }.toSet()
+            filtered.map { h -> HabitDayItem(h.id, h.title, h.triggers, h.id in completedIds) }
+        }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    val uiState: StateFlow<TaskUiState> = combine(
+        combine(
+            _selectedDate.flatMapLatest { taskRepository.observeTasksForDate(it) },
+            _selectedDate,
+            // When either date or permission changes, re-subscribe to the calendar Flow
+            combine(_selectedDate, _permissionGranted) { date, granted -> date to granted }
+                .flatMapLatest { (date, granted) ->
+                    if (granted) calendarRepository.observeEventsForDay(date)
+                    else flowOf(emptyList())
+                },
+            _permissionGranted,
+            _formAndSheet,
+        ) { tasks, date, events, granted, formState ->
+            val slots = availabilityService.findFreeSlots(events, date)
+            formState.copy(
+                tasks = tasks,
+                selectedDate = date,
+                calendarEvents = events,
+                freeSlots = slots,
+                calendarPermissionGranted = granted,
+            )
+        },
+        _habitItems,
+    ) { state, habits -> state.copy(scheduledHabits = habits) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), TaskUiState())
 
     fun onCalendarPermissionResult(granted: Boolean) {
         _permissionGranted.value = granted
@@ -158,5 +193,11 @@ class TaskViewModel @Inject constructor(
 
     fun deleteTask(task: Task) {
         viewModelScope.launch { taskRepository.deleteTask(task.id) }
+    }
+
+    fun toggleHabitCompleted(item: HabitDayItem) {
+        viewModelScope.launch {
+            habitRepository.setCompletion(item.id, _selectedDate.value, !item.completedToday)
+        }
     }
 }

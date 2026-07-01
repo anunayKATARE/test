@@ -173,6 +173,21 @@ fun TaskScreen(viewModel: TaskViewModel = hiltViewModel()) {
                 Spacer(Modifier.height(8.dp))
             }
 
+            if (state.scheduledHabits.isNotEmpty()) {
+                item {
+                    Spacer(Modifier.height(8.dp))
+                    Text("Habits", style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary)
+                    Spacer(Modifier.height(4.dp))
+                }
+                items(state.scheduledHabits, key = { "habit_${it.id}" }) { habit ->
+                    HabitDayCard(
+                        item = habit,
+                        onToggle = { viewModel.toggleHabitCompleted(habit) },
+                    )
+                    Spacer(Modifier.height(8.dp))
+                }
+            }
+
             item { Spacer(Modifier.height(80.dp)) }
         }
     }
@@ -378,6 +393,36 @@ private fun TaskCard(task: Task, onToggle: () -> Unit, onEdit: () -> Unit, onDel
                 }
                 IconButton(onClick = onDelete, modifier = Modifier.size(36.dp)) {
                     Icon(Icons.Filled.Delete, contentDescription = "Delete", tint = MaterialTheme.colorScheme.error)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun HabitDayCard(item: HabitDayItem, onToggle: () -> Unit) {
+    LifeOSCard(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Checkbox(checked = item.completedToday, onCheckedChange = { onToggle() })
+            Spacer(Modifier.width(4.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    item.title,
+                    style = MaterialTheme.typography.bodyLarge.let {
+                        if (item.completedToday) it.copy(textDecoration = TextDecoration.LineThrough) else it
+                    },
+                    color = if (item.completedToday) MaterialTheme.colorScheme.onSurfaceVariant
+                    else MaterialTheme.colorScheme.onSurface,
+                )
+                if (item.triggers.isNotEmpty()) {
+                    Text(
+                        "Triggers: ${item.triggers.joinToString(", ")}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                 }
             }
         }

@@ -129,6 +129,12 @@ object DatabaseModule {
         }
     }
 
+    val MIGRATION_8_9 = object : Migration(8, 9) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE habits ADD COLUMN triggers TEXT NOT NULL DEFAULT ''")
+        }
+    }
+
     private val ON_CREATE_CALLBACK = object : RoomDatabase.Callback() {
         override fun onCreate(db: SupportSQLiteDatabase) {
             super.onCreate(db)
@@ -142,7 +148,7 @@ object DatabaseModule {
     @Singleton
     fun provideAppDatabase(@ApplicationContext context: Context): AppDatabase =
         Room.databaseBuilder(context, AppDatabase::class.java, AppDatabase.DATABASE_NAME)
-            .addMigrations(MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8)
+            .addMigrations(MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9)
             .addCallback(ON_CREATE_CALLBACK)
             .fallbackToDestructiveMigration()
             .build()

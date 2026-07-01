@@ -36,11 +36,15 @@ class TaskRepositoryImpl @Inject constructor(
 
     override suspend fun setCompleted(id: String, completed: Boolean) = dao.setCompleted(id, completed)
 
-    override suspend fun completionCountByDay(start: LocalDate, end: LocalDate): Map<Long, Int> =
-        dao.completionCountByDay(start.toEpochDay(), end.toEpochDay()).associate { it.day to it.count }
+    override suspend fun completionCountByDay(start: LocalDate, end: LocalDate): Map<Long, Int> {
+        val profileId = demoModeRepository.activeProfile.first()?.id ?: return emptyMap()
+        return dao.completionCountByDay(start.toEpochDay(), end.toEpochDay(), profileId).associate { it.day to it.count }
+    }
 
-    override suspend fun totalCountByDay(start: LocalDate, end: LocalDate): Map<Long, Int> =
-        dao.totalCountByDay(start.toEpochDay(), end.toEpochDay()).associate { it.day to it.count }
+    override suspend fun totalCountByDay(start: LocalDate, end: LocalDate): Map<Long, Int> {
+        val profileId = demoModeRepository.activeProfile.first()?.id ?: return emptyMap()
+        return dao.totalCountByDay(start.toEpochDay(), end.toEpochDay(), profileId).associate { it.day to it.count }
+    }
 
     override suspend fun getTriggerFailureCounts(): Map<String, Int> {
         val profileId = demoModeRepository.activeProfile.first()?.id ?: return emptyMap()

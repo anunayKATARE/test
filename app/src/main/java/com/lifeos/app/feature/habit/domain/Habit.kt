@@ -17,6 +17,7 @@ data class Habit(
     val importance: HabitImportance = HabitImportance.MEDIUM,
     val categoryId: String? = null,
     val isArchived: Boolean = false,
+    val triggers: List<String> = emptyList(),
     val createdAt: Instant = Instant.now(),
 )
 

@@ -16,6 +16,7 @@ class AddHabitUseCase @Inject constructor(
         difficulty: HabitDifficulty = HabitDifficulty.MEDIUM,
         importance: HabitImportance = HabitImportance.MEDIUM,
         categoryId: String? = null,
+        triggers: List<String> = emptyList(),
     ): Habit {
         val habit = Habit(
             id = IdGenerator.newId(),
@@ -26,6 +27,7 @@ class AddHabitUseCase @Inject constructor(
             difficulty = difficulty,
             importance = importance,
             categoryId = categoryId,
+            triggers = triggers,
         )
         repository.upsertHabit(habit)
         return habit

@@ -4,8 +4,12 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -14,6 +18,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.RadioButtonUnchecked
 import androidx.compose.material3.AlertDialog
@@ -23,6 +28,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.InputChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -80,8 +86,8 @@ fun HabitScreen(viewModel: HabitViewModel = hiltViewModel()) {
     if (showAddDialog) {
         AddHabitDialog(
             onDismiss = { showAddDialog = false },
-            onConfirm = { title, description, schedule, difficulty, importance ->
-                viewModel.addHabit(title, description, schedule, difficulty, importance)
+            onConfirm = { title, description, schedule, difficulty, importance, triggers ->
+                viewModel.addHabit(title, description, schedule, difficulty, importance, triggers)
                 showAddDialog = false
             },
         )
@@ -132,10 +138,11 @@ private fun HabitRow(item: HabitUiModel, onToggle: () -> Unit, onDelete: () -> U
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun AddHabitDialog(
     onDismiss: () -> Unit,
-    onConfirm: (String, String, HabitScheduleType, HabitDifficulty, HabitImportance) -> Unit,
+    onConfirm: (String, String, HabitScheduleType, HabitDifficulty, HabitImportance, List<String>) -> Unit,
 ) {
     var title by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
@@ -143,6 +150,8 @@ private fun AddHabitDialog(
     var difficulty by remember { mutableStateOf(HabitDifficulty.MEDIUM) }
     var importance by remember { mutableStateOf(HabitImportance.MEDIUM) }
     var scheduleMenuExpanded by remember { mutableStateOf(false) }
+    var triggers by remember { mutableStateOf(listOf<String>()) }
+    var triggerInput by remember { mutableStateOf("") }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -159,10 +168,38 @@ private fun AddHabitDialog(
                         }
                     }
                 }
+                Spacer(Modifier.height(8.dp))
+                Text("Triggers (e.g. morning, coffee)", style = MaterialTheme.typography.labelSmall)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    OutlinedTextField(
+                        value = triggerInput,
+                        onValueChange = { triggerInput = it },
+                        label = { Text("Add trigger") },
+                        modifier = Modifier.weight(1f),
+                        singleLine = true,
+                    )
+                    TextButton(onClick = {
+                        val t = triggerInput.trim().lowercase()
+                        if (t.isNotBlank() && !triggers.contains(t)) triggers = triggers + t
+                        triggerInput = ""
+                    }) { Text("Add") }
+                }
+                if (triggers.isNotEmpty()) {
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        triggers.forEach { trigger ->
+                            InputChip(
+                                selected = false,
+                                onClick = { triggers = triggers - trigger },
+                                label = { Text(trigger) },
+                                trailingIcon = { Icon(Icons.Filled.Close, contentDescription = "Remove", modifier = Modifier.size(14.dp)) },
+                            )
+                        }
+                    }
+                }
             }
         },
         confirmButton = {
-            TextButton(onClick = { if (title.isNotBlank()) onConfirm(title, description, schedule, difficulty, importance) }) {
+            TextButton(onClick = { if (title.isNotBlank()) onConfirm(title, description, schedule, difficulty, importance, triggers) }) {
                 Text("Add")
             }
         },

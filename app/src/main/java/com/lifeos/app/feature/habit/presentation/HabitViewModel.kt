@@ -66,8 +66,9 @@ class HabitViewModel @Inject constructor(
         scheduleType: HabitScheduleType,
         difficulty: HabitDifficulty,
         importance: HabitImportance,
+        triggers: List<String> = emptyList(),
     ) {
-        viewModelScope.launch { addHabitUseCase(title, description, scheduleType, emptyList(), difficulty, importance) }
+        viewModelScope.launch { addHabitUseCase(title, description, scheduleType, emptyList(), difficulty, importance, triggers = triggers) }
     }
 
     fun deleteHabit(id: String) {

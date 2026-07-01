@@ -19,6 +19,7 @@ data class HabitEntity(
     val importance: HabitImportance,
     val categoryId: String?,
     val isArchived: Boolean,
+    val triggers: List<String> = emptyList(),
     val createdAt: Instant,
     val profileId: String? = null,
 )
@@ -33,6 +34,7 @@ fun HabitEntity.toDomain() = Habit(
     importance = importance,
     categoryId = categoryId,
     isArchived = isArchived,
+    triggers = triggers,
     createdAt = createdAt,
 )
 
@@ -46,5 +48,6 @@ fun Habit.toEntity() = HabitEntity(
     importance = importance,
     categoryId = categoryId,
     isArchived = isArchived,
+    triggers = triggers,
     createdAt = createdAt,
 )

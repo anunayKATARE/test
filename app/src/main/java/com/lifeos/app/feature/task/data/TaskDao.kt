@@ -39,6 +39,18 @@ interface TaskDao {
     )
     suspend fun totalCountByDay(startEpochDay: Long, endEpochDay: Long): List<TaskDayCount>
 
+    @Query(
+        "SELECT date as day, COUNT(*) as count FROM tasks " +
+            "WHERE completed = 1 AND profileId = :profileId AND date BETWEEN :startEpochDay AND :endEpochDay GROUP BY date",
+    )
+    suspend fun completionCountByDay(startEpochDay: Long, endEpochDay: Long, profileId: String): List<TaskDayCount>
+
+    @Query(
+        "SELECT date as day, COUNT(*) as count FROM tasks " +
+            "WHERE profileId = :profileId AND date BETWEEN :startEpochDay AND :endEpochDay GROUP BY date",
+    )
+    suspend fun totalCountByDay(startEpochDay: Long, endEpochDay: Long, profileId: String): List<TaskDayCount>
+
     @Query("DELETE FROM tasks WHERE profileId = :profileId")
     suspend fun deleteAllByProfile(profileId: String)
 
