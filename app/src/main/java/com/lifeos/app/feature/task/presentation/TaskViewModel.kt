@@ -13,10 +13,13 @@ import java.time.Instant
 import java.time.LocalDate
 import java.util.UUID
 import javax.inject.Inject
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -41,6 +44,7 @@ data class TaskUiState(
     val calendarPermissionGranted: Boolean = false,
 )
 
+@OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class TaskViewModel @Inject constructor(
     private val taskRepository: TaskRepository,
@@ -48,55 +52,51 @@ class TaskViewModel @Inject constructor(
     private val availabilityService: AvailabilityService,
 ) : ViewModel() {
 
-    private val _uiState = MutableStateFlow(TaskUiState())
-    val uiState: StateFlow<TaskUiState> = _uiState.stateIn(
-        viewModelScope, SharingStarted.WhileSubscribed(5_000), TaskUiState(),
-    )
-
     private val _selectedDate = MutableStateFlow(LocalDate.now())
 
-    private val tasks: StateFlow<List<Task>> = _selectedDate
-        .flatMapLatest { taskRepository.observeTasksForDate(it) }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+    // Separate permission Flow so granting permission re-triggers calendar observation
+    private val _permissionGranted = MutableStateFlow(calendarRepository.hasPermission())
 
-    init {
-        viewModelScope.launch {
-            tasks.collect { list ->
-                _uiState.update { it.copy(tasks = list) }
-            }
-        }
-        viewModelScope.launch {
-            _selectedDate.collect { date ->
-                _uiState.update { it.copy(selectedDate = date) }
-                refreshCalendar(date)
-            }
-        }
-        _uiState.update { it.copy(calendarPermissionGranted = calendarRepository.hasPermission()) }
-    }
+    private val _formAndSheet = MutableStateFlow(
+        TaskUiState(calendarPermissionGranted = _permissionGranted.value),
+    )
+
+    val uiState: StateFlow<TaskUiState> = combine(
+        _selectedDate.flatMapLatest { taskRepository.observeTasksForDate(it) },
+        _selectedDate,
+        // When either date or permission changes, re-subscribe to the calendar Flow
+        combine(_selectedDate, _permissionGranted) { date, granted -> date to granted }
+            .flatMapLatest { (date, granted) ->
+                if (granted) calendarRepository.observeEventsForDay(date)
+                else flowOf(emptyList())
+            },
+        _permissionGranted,
+        _formAndSheet,
+    ) { tasks, date, events, granted, formState ->
+        val slots = availabilityService.findFreeSlots(events, date)
+        formState.copy(
+            tasks = tasks,
+            selectedDate = date,
+            calendarEvents = events,
+            freeSlots = slots,
+            calendarPermissionGranted = granted,
+        )
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), TaskUiState())
 
     fun onCalendarPermissionResult(granted: Boolean) {
-        _uiState.update { it.copy(calendarPermissionGranted = granted) }
-        if (granted) refreshCalendar(_selectedDate.value)
-    }
-
-    private fun refreshCalendar(date: LocalDate) {
-        viewModelScope.launch {
-            val events = calendarRepository.getEventsForDay(date)
-            val slots = availabilityService.findFreeSlots(events, date)
-            _uiState.update { it.copy(calendarEvents = events, freeSlots = slots) }
-        }
+        _permissionGranted.value = granted
     }
 
     fun selectDate(date: LocalDate) { _selectedDate.value = date }
 
     fun openAddSheet() {
-        _uiState.update {
+        _formAndSheet.update {
             it.copy(showSheet = true, editingTask = null, form = TaskFormState(date = _selectedDate.value))
         }
     }
 
     fun openEditSheet(task: Task) {
-        _uiState.update {
+        _formAndSheet.update {
             it.copy(
                 showSheet = true,
                 editingTask = task,
@@ -111,33 +111,33 @@ class TaskViewModel @Inject constructor(
         }
     }
 
-    fun dismissSheet() { _uiState.update { it.copy(showSheet = false) } }
+    fun dismissSheet() { _formAndSheet.update { it.copy(showSheet = false) } }
 
-    fun updateTitle(v: String) { _uiState.update { it.copy(form = it.form.copy(title = v)) } }
-    fun updateDescription(v: String) { _uiState.update { it.copy(form = it.form.copy(description = v)) } }
-    fun updateDate(v: LocalDate) { _uiState.update { it.copy(form = it.form.copy(date = v)) } }
-    fun updateTriggerInput(v: String) { _uiState.update { it.copy(form = it.form.copy(triggerInput = v)) } }
+    fun updateTitle(v: String) { _formAndSheet.update { it.copy(form = it.form.copy(title = v)) } }
+    fun updateDescription(v: String) { _formAndSheet.update { it.copy(form = it.form.copy(description = v)) } }
+    fun updateDate(v: LocalDate) { _formAndSheet.update { it.copy(form = it.form.copy(date = v)) } }
+    fun updateTriggerInput(v: String) { _formAndSheet.update { it.copy(form = it.form.copy(triggerInput = v)) } }
     fun pickScheduledSlot(slot: FreeSlot?) {
-        _uiState.update { it.copy(form = it.form.copy(scheduledAt = slot?.start)) }
+        _formAndSheet.update { it.copy(form = it.form.copy(scheduledAt = slot?.start)) }
     }
 
     fun addTrigger() {
-        val input = _uiState.value.form.triggerInput.trim().lowercase()
+        val input = _formAndSheet.value.form.triggerInput.trim().lowercase()
         if (input.isBlank()) return
-        _uiState.update { state ->
+        _formAndSheet.update { state ->
             val newTriggers = (state.form.triggers + input).distinct()
             state.copy(form = state.form.copy(triggers = newTriggers, triggerInput = ""))
         }
     }
 
     fun removeTrigger(trigger: String) {
-        _uiState.update { it.copy(form = it.form.copy(triggers = it.form.triggers - trigger)) }
+        _formAndSheet.update { it.copy(form = it.form.copy(triggers = it.form.triggers - trigger)) }
     }
 
     fun saveTask() {
-        val form = _uiState.value.form
+        val form = _formAndSheet.value.form
         if (form.title.isBlank()) return
-        val existing = _uiState.value.editingTask
+        val existing = _formAndSheet.value.editingTask
         val task = Task(
             id = existing?.id ?: UUID.randomUUID().toString(),
             title = form.title.trim(),
@@ -149,7 +149,7 @@ class TaskViewModel @Inject constructor(
             scheduledAt = form.scheduledAt,
         )
         viewModelScope.launch { taskRepository.upsertTask(task) }
-        _uiState.update { it.copy(showSheet = false) }
+        _formAndSheet.update { it.copy(showSheet = false) }
     }
 
     fun toggleCompleted(task: Task) {

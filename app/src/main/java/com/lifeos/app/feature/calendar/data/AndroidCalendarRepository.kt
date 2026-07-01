@@ -4,6 +4,9 @@ import android.Manifest
 import android.content.ContentUris
 import android.content.Context
 import android.content.pm.PackageManager
+import android.database.ContentObserver
+import android.os.Handler
+import android.os.Looper
 import android.provider.CalendarContract
 import com.lifeos.app.feature.calendar.domain.CalendarEvent
 import com.lifeos.app.feature.calendar.domain.CalendarRepository
@@ -13,6 +16,11 @@ import java.time.LocalDate
 import java.time.ZoneId
 import javax.inject.Inject
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 class AndroidCalendarRepository @Inject constructor(
@@ -22,12 +30,30 @@ class AndroidCalendarRepository @Inject constructor(
     override fun hasPermission(): Boolean =
         context.checkSelfPermission(Manifest.permission.READ_CALENDAR) == PackageManager.PERMISSION_GRANTED
 
-    override suspend fun getEventsForDay(date: LocalDate): List<CalendarEvent> = withContext(Dispatchers.IO) {
-        if (!hasPermission()) return@withContext emptyList()
+    override fun observeEventsForDay(date: LocalDate): Flow<List<CalendarEvent>> {
+        if (!hasPermission()) return flowOf(emptyList())
+
         val zone = ZoneId.systemDefault()
         val fromMillis = date.atStartOfDay(zone).toInstant().toEpochMilli()
         val toMillis = date.plusDays(1).atStartOfDay(zone).toInstant().toEpochMilli()
-        queryInstances(fromMillis, toMillis)
+
+        return callbackFlow {
+            // Initial load
+            send(withContext(Dispatchers.IO) { queryInstances(fromMillis, toMillis) })
+
+            // Watch device calendar for changes (covers Google, Samsung, any synced calendar)
+            val observer = object : ContentObserver(Handler(Looper.getMainLooper())) {
+                override fun onChange(selfChange: Boolean) {
+                    launch {
+                        send(withContext(Dispatchers.IO) { queryInstances(fromMillis, toMillis) })
+                    }
+                }
+            }
+            context.contentResolver.registerContentObserver(
+                CalendarContract.Events.CONTENT_URI, true, observer,
+            )
+            awaitClose { context.contentResolver.unregisterContentObserver(observer) }
+        }
     }
 
     private fun queryInstances(fromMillis: Long, toMillis: Long): List<CalendarEvent> {

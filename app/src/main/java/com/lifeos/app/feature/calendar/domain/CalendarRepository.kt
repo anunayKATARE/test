@@ -1,8 +1,9 @@
 package com.lifeos.app.feature.calendar.domain
 
 import java.time.LocalDate
+import kotlinx.coroutines.flow.Flow
 
 interface CalendarRepository {
     fun hasPermission(): Boolean
-    suspend fun getEventsForDay(date: LocalDate): List<CalendarEvent>
+    fun observeEventsForDay(date: LocalDate): Flow<List<CalendarEvent>>
 }

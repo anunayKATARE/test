@@ -34,9 +34,11 @@ import com.lifeos.app.feature.selfbelief.data.SelfBeliefDao
 import com.lifeos.app.feature.selfbelief.data.SelfBeliefEntity
 import com.lifeos.app.feature.task.data.TaskDao
 import com.lifeos.app.feature.task.data.TaskEntity
+import com.lifeos.app.core.demo.DemoModeRepository
 import java.time.Instant
 import java.time.LocalDate
 import javax.inject.Inject
+import kotlinx.coroutines.flow.first
 import org.json.JSONArray
 import org.json.JSONObject
 
@@ -54,6 +56,7 @@ class BackupRepositoryImpl @Inject constructor(
     private val problemDao: ProblemDao,
     private val taskDao: TaskDao,
     private val inspirationDao: InspirationDao,
+    private val demoModeRepository: DemoModeRepository,
 ) : BackupRepository {
 
     override suspend fun exportSnapshot(): String {
@@ -76,43 +79,58 @@ class BackupRepositoryImpl @Inject constructor(
     }
 
     override suspend fun importSnapshot(json: String) {
+        // All imported rows must carry the current profile ID or they are invisible to every
+        // repository query (which filters by profileId == activeProfile.id).
+        val profileId = demoModeRepository.activeProfile.first()?.id
         val root = JSONObject(json)
 
         categoryDao.deleteAllReal()
-        root.getJSONArray("categories").toObjects().forEach { categoryDao.upsert(it.toCategoryEntity()) }
+        root.getJSONArray("categories").toObjects()
+            .forEach { categoryDao.upsert(it.toCategoryEntity().copy(profileId = profileId)) }
 
         journalDao.deleteAllReal()
-        root.getJSONArray("journalEntries").toObjects().forEach { journalDao.upsert(it.toJournalEntryEntity()) }
+        root.getJSONArray("journalEntries").toObjects()
+            .forEach { journalDao.upsert(it.toJournalEntryEntity().copy(profileId = profileId)) }
 
         moodDao.deleteAllReal()
-        root.getJSONArray("moodEntries").toObjects().forEach { moodDao.upsert(it.toMoodEntryEntity()) }
+        root.getJSONArray("moodEntries").toObjects()
+            .forEach { moodDao.upsert(it.toMoodEntryEntity().copy(profileId = profileId)) }
 
         habitDao.deleteAllRealHabits()
-        root.getJSONArray("habits").toObjects().forEach { habitDao.upsertHabit(it.toHabitEntity()) }
+        root.getJSONArray("habits").toObjects()
+            .forEach { habitDao.upsertHabit(it.toHabitEntity().copy(profileId = profileId)) }
 
         habitDao.deleteAllRealCompletions()
-        root.getJSONArray("habitCompletions").toObjects().forEach { habitDao.upsertCompletion(it.toHabitCompletionEntity()) }
+        root.getJSONArray("habitCompletions").toObjects()
+            .forEach { habitDao.upsertCompletion(it.toHabitCompletionEntity().copy(profileId = profileId)) }
 
         goalDao.deleteAllReal()
-        root.getJSONArray("goals").toObjects().forEach { goalDao.upsert(it.toGoalEntity()) }
+        root.getJSONArray("goals").toObjects()
+            .forEach { goalDao.upsert(it.toGoalEntity().copy(profileId = profileId)) }
 
         mentalToughnessDao.deleteAllReal()
-        root.getJSONArray("mentalToughnessEntries").toObjects().forEach { mentalToughnessDao.upsert(it.toMentalToughnessEntity()) }
+        root.getJSONArray("mentalToughnessEntries").toObjects()
+            .forEach { mentalToughnessDao.upsert(it.toMentalToughnessEntity().copy(profileId = profileId)) }
 
         selfBeliefDao.deleteAllReal()
-        root.getJSONArray("selfBeliefReflections").toObjects().forEach { selfBeliefDao.upsert(it.toSelfBeliefEntity()) }
+        root.getJSONArray("selfBeliefReflections").toObjects()
+            .forEach { selfBeliefDao.upsert(it.toSelfBeliefEntity().copy(profileId = profileId)) }
 
         reflectionDao.deleteAllReal()
-        root.getJSONArray("reflectionEntries").toObjects().forEach { reflectionDao.upsert(it.toReflectionEntity()) }
+        root.getJSONArray("reflectionEntries").toObjects()
+            .forEach { reflectionDao.upsert(it.toReflectionEntity().copy(profileId = profileId)) }
 
         problemDao.deleteAllReal()
-        root.getJSONArray("problems").toObjects().forEach { problemDao.upsert(it.toProblemEntity()) }
+        root.getJSONArray("problems").toObjects()
+            .forEach { problemDao.upsert(it.toProblemEntity().copy(profileId = profileId)) }
 
         taskDao.deleteAllReal()
-        root.getJSONArray("tasks").toObjects().forEach { taskDao.upsertTask(it.toTaskEntity()) }
+        root.getJSONArray("tasks").toObjects()
+            .forEach { taskDao.upsertTask(it.toTaskEntity().copy(profileId = profileId)) }
 
         inspirationDao.deleteAllReal()
-        root.getJSONArray("inspirationItems").toObjects().forEach { inspirationDao.upsert(it.toInspirationEntity()) }
+        root.getJSONArray("inspirationItems").toObjects()
+            .forEach { inspirationDao.upsert(it.toInspirationEntity().copy(profileId = profileId)) }
     }
 }
 

@@ -1,6 +1,9 @@
 package com.lifeos.app.feature.task.presentation
 
 import android.Manifest
+import android.content.Intent
+import android.net.Uri
+import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -47,7 +50,11 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.style.TextAlign
@@ -78,12 +85,24 @@ private val slotFormatter: DateTimeFormatter =
 fun TaskScreen(viewModel: TaskViewModel = hiltViewModel()) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
 
+    val context = LocalContext.current
+    var permissionDeniedPermanently by remember { mutableStateOf(false) }
+
     val calendarPermissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
-    ) { granted -> viewModel.onCalendarPermissionResult(granted) }
+    ) { granted ->
+        viewModel.onCalendarPermissionResult(granted)
+        if (!granted) {
+            // If the system didn't show a rationale before asking, the user chose "Never ask again"
+            val activity = context as? android.app.Activity
+            permissionDeniedPermanently = activity?.shouldShowRequestPermissionRationale(
+                Manifest.permission.READ_CALENDAR
+            ) == false
+        }
+    }
 
-    // Auto-request on first entry if not yet granted
-    LaunchedEffect(state.calendarPermissionGranted) {
+    // Fire once per screen entry; if not yet granted, show the system dialog immediately
+    LaunchedEffect(Unit) {
         if (!state.calendarPermissionGranted) {
             calendarPermissionLauncher.launch(Manifest.permission.READ_CALENDAR)
         }
@@ -117,10 +136,18 @@ fun TaskScreen(viewModel: TaskViewModel = hiltViewModel()) {
             item {
                 CalendarSection(
                     hasPermission = state.calendarPermissionGranted,
+                    permanentlyDenied = permissionDeniedPermanently,
                     events = state.calendarEvents,
                     date = state.selectedDate,
                     onRequestPermission = {
                         calendarPermissionLauncher.launch(Manifest.permission.READ_CALENDAR)
+                    },
+                    onOpenSettings = {
+                        context.startActivity(
+                            Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                                data = Uri.fromParts("package", context.packageName, null)
+                            }
+                        )
                     },
                 )
                 Spacer(Modifier.height(16.dp))
@@ -173,9 +200,11 @@ fun TaskScreen(viewModel: TaskViewModel = hiltViewModel()) {
 @Composable
 private fun CalendarSection(
     hasPermission: Boolean,
+    permanentlyDenied: Boolean,
     events: List<CalendarEvent>,
     date: LocalDate,
     onRequestPermission: () -> Unit,
+    onOpenSettings: () -> Unit,
 ) {
     LifeOSCard(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(12.dp)) {
@@ -191,18 +220,26 @@ private fun CalendarSection(
             }
             Spacer(Modifier.height(8.dp))
 
-            if (!hasPermission) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
+            when {
+                hasPermission -> DayBusyBar(events = events, date = date)
+                permanentlyDenied -> Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
-                        "Connect your calendar to see busy times",
+                        "Calendar access was denied. Enable it in Settings.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.weight(1f),
+                    )
+                    TextButton(onClick = onOpenSettings) { Text("Settings") }
+                }
+                else -> Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        "Allow calendar access to see busy times",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.weight(1f),
                     )
                     TextButton(onClick = onRequestPermission) { Text("Allow") }
                 }
-            } else {
-                DayBusyBar(events = events, date = date)
             }
         }
     }
