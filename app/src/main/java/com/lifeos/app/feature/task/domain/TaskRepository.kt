@@ -12,5 +12,7 @@ interface TaskRepository {
     suspend fun setCompleted(id: String, completed: Boolean)
     suspend fun completionCountByDay(start: LocalDate, end: LocalDate): Map<Long, Int>
     suspend fun totalCountByDay(start: LocalDate, end: LocalDate): Map<Long, Int>
+    fun observeCompletionsByDay(start: LocalDate, end: LocalDate): Flow<Map<Long, Int>>
+    fun observeTotalByDay(start: LocalDate, end: LocalDate): Flow<Map<Long, Int>>
     suspend fun getTriggerFailureCounts(): Map<String, Int>
 }

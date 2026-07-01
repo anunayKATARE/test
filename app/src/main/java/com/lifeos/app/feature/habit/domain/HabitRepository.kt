@@ -16,4 +16,5 @@ interface HabitRepository {
     suspend fun getCompletionsBetween(habitId: String, start: LocalDate, end: LocalDate): List<HabitCompletion>
     suspend fun setCompletion(habitId: String, date: LocalDate, completed: Boolean, note: String = "")
     suspend fun completionCountByDay(start: LocalDate, end: LocalDate): Map<Long, Int>
+    fun observeCompletionsByDay(start: LocalDate, end: LocalDate): Flow<Map<Long, Int>>
 }

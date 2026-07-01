@@ -6,9 +6,8 @@ import com.lifeos.app.feature.calendar.domain.AvailabilityService
 import com.lifeos.app.feature.calendar.domain.CalendarEvent
 import com.lifeos.app.feature.calendar.domain.CalendarRepository
 import com.lifeos.app.feature.calendar.domain.FreeSlot
-import com.lifeos.app.feature.habit.domain.Habit
 import com.lifeos.app.feature.habit.domain.HabitRepository
-import com.lifeos.app.feature.habit.domain.HabitScheduleType
+import com.lifeos.app.feature.habit.domain.isScheduledOn
 import com.lifeos.app.feature.task.domain.Task
 import com.lifeos.app.feature.task.domain.TaskRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -74,16 +73,11 @@ class TaskViewModel @Inject constructor(
         TaskUiState(calendarPermissionGranted = _permissionGranted.value),
     )
 
-    private fun isHabitScheduledOn(habit: Habit, date: LocalDate): Boolean = when (habit.scheduleType) {
-        HabitScheduleType.DAILY, HabitScheduleType.WEEKLY, HabitScheduleType.MONTHLY -> true
-        HabitScheduleType.CUSTOM -> habit.customDaysOfWeek.contains(date.dayOfWeek.value)
-    }
-
     private val _habitItems: StateFlow<List<HabitDayItem>> = combine(
         _selectedDate,
         habitRepository.observeActiveHabits(),
     ) { date, habits ->
-        habits.filter { isHabitScheduledOn(it, date) } to date
+        habits.filter { it.isScheduledOn(date) } to date
     }.flatMapLatest { (filtered, date) ->
         if (filtered.isEmpty()) flowOf(emptyList())
         else habitRepository.observeCompletionsOn(date).map { completions ->

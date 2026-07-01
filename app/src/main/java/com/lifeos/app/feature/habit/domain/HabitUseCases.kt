@@ -185,11 +185,6 @@ class GetTodaysHabitsUseCase @Inject constructor(
 ) {
     suspend operator fun invoke(): List<Habit> {
         val today = LocalDate.now()
-        return repository.observeActiveHabits().first().filter { habit ->
-            when (habit.scheduleType) {
-                HabitScheduleType.DAILY, HabitScheduleType.WEEKLY, HabitScheduleType.MONTHLY -> true
-                HabitScheduleType.CUSTOM -> habit.customDaysOfWeek.contains(today.dayOfWeek.value)
-            }
-        }
+        return repository.observeActiveHabits().first().filter { it.isScheduledOn(today) }
     }
 }

@@ -8,6 +8,8 @@ import javax.inject.Inject
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 
 class TaskRepositoryImpl @Inject constructor(
@@ -45,6 +47,20 @@ class TaskRepositoryImpl @Inject constructor(
         val profileId = demoModeRepository.activeProfile.first()?.id ?: return emptyMap()
         return dao.totalCountByDay(start.toEpochDay(), end.toEpochDay(), profileId).associate { it.day to it.count }
     }
+
+    override fun observeCompletionsByDay(start: LocalDate, end: LocalDate): Flow<Map<Long, Int>> =
+        demoModeRepository.activeProfile.flatMapLatest { profile ->
+            val profileId = profile?.id ?: return@flatMapLatest flowOf(emptyMap())
+            dao.observeCompletionsByDay(start.toEpochDay(), end.toEpochDay(), profileId)
+                .map { list -> list.associate { it.day to it.count } }
+        }
+
+    override fun observeTotalByDay(start: LocalDate, end: LocalDate): Flow<Map<Long, Int>> =
+        demoModeRepository.activeProfile.flatMapLatest { profile ->
+            val profileId = profile?.id ?: return@flatMapLatest flowOf(emptyMap())
+            dao.observeTotalByDay(start.toEpochDay(), end.toEpochDay(), profileId)
+                .map { list -> list.associate { it.day to it.count } }
+        }
 
     override suspend fun getTriggerFailureCounts(): Map<String, Int> {
         val profileId = demoModeRepository.activeProfile.first()?.id ?: return emptyMap()

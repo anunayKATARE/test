@@ -34,3 +34,8 @@ data class HabitStats(
     val longestStreak: Int,
     val completionRate: Float,
 )
+
+fun Habit.isScheduledOn(date: LocalDate): Boolean = when (scheduleType) {
+    HabitScheduleType.DAILY, HabitScheduleType.WEEKLY, HabitScheduleType.MONTHLY -> true
+    HabitScheduleType.CUSTOM -> customDaysOfWeek.contains(date.dayOfWeek.value)
+}

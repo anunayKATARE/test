@@ -47,15 +47,15 @@ interface HabitDao {
 
     @Query(
         "SELECT date as day, COUNT(*) as count FROM habit_completions " +
-            "WHERE completed = 1 AND date BETWEEN :startEpochDay AND :endEpochDay GROUP BY date",
+            "WHERE completed = 1 AND profileId = :profileId AND date BETWEEN :startEpochDay AND :endEpochDay GROUP BY date",
     )
-    suspend fun completionCountByDay(startEpochDay: Long, endEpochDay: Long): List<HabitDayCount>
+    suspend fun completionCountByDay(startEpochDay: Long, endEpochDay: Long, profileId: String): List<HabitDayCount>
 
     @Query(
         "SELECT date as day, COUNT(*) as count FROM habit_completions " +
             "WHERE completed = 1 AND profileId = :profileId AND date BETWEEN :startEpochDay AND :endEpochDay GROUP BY date",
     )
-    suspend fun completionCountByDay(startEpochDay: Long, endEpochDay: Long, profileId: String): List<HabitDayCount>
+    fun observeCompletionsByDay(startEpochDay: Long, endEpochDay: Long, profileId: String): Flow<List<HabitDayCount>>
 
     @Query("DELETE FROM habits WHERE profileId = :profileId")
     suspend fun deleteHabitsByProfile(profileId: String)
