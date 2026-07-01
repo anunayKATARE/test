@@ -24,6 +24,9 @@ import com.lifeos.app.feature.reflection.data.ReflectionDao
 import com.lifeos.app.feature.reflection.data.ReflectionEntity
 import com.lifeos.app.feature.selfbelief.data.SelfBeliefDao
 import com.lifeos.app.feature.selfbelief.data.SelfBeliefEntity
+import com.lifeos.app.feature.checkin.data.CheckInCommitmentEntity
+import com.lifeos.app.feature.checkin.data.CheckInDao
+import com.lifeos.app.feature.checkin.data.CheckInSessionEntity
 import com.lifeos.app.feature.task.data.TaskDao
 import com.lifeos.app.feature.task.data.TaskEntity
 
@@ -41,8 +44,10 @@ import com.lifeos.app.feature.task.data.TaskEntity
         ProblemEntity::class,
         TaskEntity::class,
         InspirationEntity::class,
+        CheckInSessionEntity::class,
+        CheckInCommitmentEntity::class,
     ],
-    version = 3,
+    version = 4,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)
@@ -58,6 +63,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun problemDao(): ProblemDao
     abstract fun taskDao(): TaskDao
     abstract fun inspirationDao(): InspirationDao
+    abstract fun checkInDao(): CheckInDao
 
     companion object {
         const val DATABASE_NAME = "lifeos.db"

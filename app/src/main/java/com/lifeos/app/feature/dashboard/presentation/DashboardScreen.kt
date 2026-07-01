@@ -2,6 +2,7 @@ package com.lifeos.app.feature.dashboard.presentation
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -11,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
@@ -24,6 +26,8 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -44,6 +48,8 @@ import com.lifeos.app.core.common.DateTimeUtils
 import com.lifeos.app.core.ui.components.CalendarMonthGrid
 import com.lifeos.app.core.ui.components.LifeOSCard
 import com.lifeos.app.core.ui.components.LifeOSScaffold
+import com.lifeos.app.feature.checkin.domain.CheckInSession
+import com.lifeos.app.feature.checkin.presentation.CheckInViewModel
 import com.lifeos.app.feature.goal.domain.Goal
 import com.lifeos.app.feature.goal.presentation.GoalViewModel
 import com.lifeos.app.feature.habit.presentation.HabitViewModel
@@ -65,9 +71,11 @@ fun DashboardScreen(
     habitViewModel: HabitViewModel = hiltViewModel(),
     moodViewModel: MoodViewModel = hiltViewModel(),
     problemViewModel: ProblemViewModel = hiltViewModel(),
+    checkInViewModel: CheckInViewModel = hiltViewModel(),
     onDayClick: (LocalDate) -> Unit = {},
 ) {
     val state by viewModel.uiState.collectAsState()
+    val checkInState by checkInViewModel.uiState.collectAsState()
     var selectedGoal by remember { mutableStateOf<Goal?>(null) }
     var selectedHabit by remember { mutableStateOf<TodayHabitUiModel?>(null) }
     var selectedMood by remember { mutableStateOf<MoodEntry?>(null) }
@@ -82,6 +90,13 @@ fun DashboardScreen(
                     text = DateTimeUtils.formatDisplayDate(LocalDate.now()),
                     style = MaterialTheme.typography.titleMedium,
                     modifier = Modifier.padding(16.dp),
+                )
+            }
+            item {
+                CheckInStatusCard(
+                    session = checkInState.activeSession,
+                    onSchedule = checkInViewModel::openDialog,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
                 )
             }
             item {
@@ -417,4 +432,52 @@ private fun RecordAttemptDialog(onDismiss: () -> Unit, onConfirm: (String, Boole
         confirmButton = { TextButton(onClick = { if (attempt.isNotBlank()) onConfirm(attempt, worked) }) { Text("Save") } },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
     )
+}
+
+@Composable
+private fun CheckInStatusCard(
+    session: com.lifeos.app.feature.checkin.domain.CheckInSession?,
+    onSchedule: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val isOverdue = session?.isOverdue == true
+    val borderColor = if (isOverdue) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.outline.copy(alpha = 0.25f)
+
+    LifeOSCard(
+        modifier = modifier
+            .fillMaxWidth()
+            .then(if (isOverdue) Modifier.border(1.5.dp, borderColor, RoundedCornerShape(16.dp)) else Modifier),
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = when {
+                        session == null -> "No check-in scheduled"
+                        isOverdue -> "Check-in overdue!"
+                        else -> "Check-in scheduled"
+                    },
+                    style = MaterialTheme.typography.titleSmall,
+                    color = if (isOverdue) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface,
+                )
+                if (session != null) {
+                    Text(
+                        text = DateTimeUtils.formatDisplayDateTime(session.scheduledAt) +
+                            if (session.commitments.isNotEmpty()) " · ${session.commitments.size} commitment(s)" else "",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+            Spacer(Modifier.width(8.dp))
+            if (isOverdue) {
+                OutlinedButton(onClick = onSchedule) { Text("Review") }
+            } else {
+                OutlinedButton(onClick = onSchedule) { Text(if (session == null) "Schedule" else "Edit") }
+            }
+        }
+    }
 }

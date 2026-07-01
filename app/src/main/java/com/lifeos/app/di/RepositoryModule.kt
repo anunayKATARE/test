@@ -2,6 +2,8 @@ package com.lifeos.app.di
 
 import com.lifeos.app.feature.backup.data.BackupRepositoryImpl
 import com.lifeos.app.feature.backup.domain.BackupRepository
+import com.lifeos.app.feature.checkin.data.CheckInRepositoryImpl
+import com.lifeos.app.feature.checkin.domain.CheckInRepository
 import com.lifeos.app.feature.category.data.CategoryRepositoryImpl
 import com.lifeos.app.feature.category.domain.CategoryRepository
 import com.lifeos.app.feature.goal.data.GoalRepositoryImpl
@@ -81,4 +83,8 @@ abstract class RepositoryModule {
     @Binds
     @Singleton
     abstract fun bindBackupRepository(impl: BackupRepositoryImpl): BackupRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindCheckInRepository(impl: CheckInRepositoryImpl): CheckInRepository
 }

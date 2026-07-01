@@ -6,6 +6,7 @@ import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 import com.lifeos.app.core.database.AppDatabase
 import com.lifeos.app.feature.category.data.CategoryDao
+import com.lifeos.app.feature.checkin.data.CheckInDao
 import com.lifeos.app.feature.goal.data.GoalDao
 import com.lifeos.app.feature.habit.data.HabitDao
 import com.lifeos.app.feature.inspiration.data.InspirationDao
@@ -39,11 +40,35 @@ object DatabaseModule {
         }
     }
 
+    val MIGRATION_3_4 = object : Migration(3, 4) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL(
+                """CREATE TABLE IF NOT EXISTS check_in_sessions (
+                    id TEXT NOT NULL PRIMARY KEY,
+                    scheduledAt INTEGER NOT NULL,
+                    completedAt INTEGER,
+                    profileId TEXT
+                )""",
+            )
+            db.execSQL(
+                """CREATE TABLE IF NOT EXISTS check_in_commitments (
+                    id TEXT NOT NULL PRIMARY KEY,
+                    sessionId TEXT NOT NULL,
+                    text TEXT NOT NULL,
+                    linkedId TEXT,
+                    linkedType TEXT,
+                    isCompleted INTEGER NOT NULL DEFAULT 0,
+                    sortOrder INTEGER NOT NULL DEFAULT 0
+                )""",
+            )
+        }
+    }
+
     @Provides
     @Singleton
     fun provideAppDatabase(@ApplicationContext context: Context): AppDatabase =
         Room.databaseBuilder(context, AppDatabase::class.java, AppDatabase.DATABASE_NAME)
-            .addMigrations(MIGRATION_2_3)
+            .addMigrations(MIGRATION_2_3, MIGRATION_3_4)
             .fallbackToDestructiveMigration()
             .build()
 
@@ -79,4 +104,7 @@ object DatabaseModule {
 
     @Provides
     fun provideInspirationDao(db: AppDatabase): InspirationDao = db.inspirationDao()
+
+    @Provides
+    fun provideCheckInDao(db: AppDatabase): CheckInDao = db.checkInDao()
 }

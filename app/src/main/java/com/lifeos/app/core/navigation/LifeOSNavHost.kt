@@ -26,6 +26,8 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.lifeos.app.core.demo.DemoTourOverlay
 import com.lifeos.app.core.demo.DemoTourViewModel
+import com.lifeos.app.feature.checkin.presentation.CheckInDialog
+import com.lifeos.app.feature.checkin.presentation.CheckInViewModel
 import com.lifeos.app.feature.analytics.presentation.AnalyticsScreen
 import com.lifeos.app.feature.backup.presentation.BackupScreen
 import com.lifeos.app.feature.calendar.presentation.CalendarScreen
@@ -49,6 +51,12 @@ fun LifeOSNavHost() {
     val navController = rememberNavController()
     val tourViewModel: DemoTourViewModel = hiltViewModel()
     val tourProgress by tourViewModel.progress.collectAsStateWithLifecycle()
+    val checkInViewModel: CheckInViewModel = hiltViewModel()
+    val checkInState by checkInViewModel.uiState.collectAsStateWithLifecycle()
+
+    LaunchedEffect(checkInState.activeSession?.isOverdue) {
+        if (checkInState.activeSession?.isOverdue == true) checkInViewModel.openDialog()
+    }
 
     LaunchedEffect(tourProgress) {
         tourProgress?.let { progress ->
@@ -116,6 +124,22 @@ fun LifeOSNavHost() {
                     composable(LifeOSRoutes.DEMO_MODE) { DemoModeScreen() }
                     composable(LifeOSRoutes.BACKUP) { BackupScreen() }
                 }
+            }
+            if (checkInState.showDialog) {
+                CheckInDialog(
+                    activeSession = checkInState.activeSession,
+                    todaysTasks = checkInState.todaysTasks,
+                    todaysHabits = checkInState.todaysHabits,
+                    todaysGoals = checkInState.todaysGoals,
+                    onSchedule = checkInViewModel::schedule,
+                    onCompleteAndScheduleNext = checkInViewModel::completeAndScheduleNext,
+                    onSkip = checkInViewModel::skip,
+                    onDismiss = checkInViewModel::dismissDialog,
+                    buildFromTask = checkInViewModel::buildCommitmentFromTask,
+                    buildFromHabit = checkInViewModel::buildCommitmentFromHabit,
+                    buildFromGoal = checkInViewModel::buildCommitmentFromGoal,
+                    buildFreeText = checkInViewModel::buildFreeTextCommitment,
+                )
             }
             tourProgress?.let { progress ->
                 DemoTourOverlay(
