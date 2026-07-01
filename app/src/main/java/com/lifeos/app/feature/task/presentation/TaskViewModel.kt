@@ -2,6 +2,10 @@ package com.lifeos.app.feature.task.presentation
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.lifeos.app.feature.calendar.domain.AvailabilityService
+import com.lifeos.app.feature.calendar.domain.CalendarEvent
+import com.lifeos.app.feature.calendar.domain.CalendarRepository
+import com.lifeos.app.feature.calendar.domain.FreeSlot
 import com.lifeos.app.feature.task.domain.Task
 import com.lifeos.app.feature.task.domain.TaskRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -23,6 +27,7 @@ data class TaskFormState(
     val date: LocalDate = LocalDate.now(),
     val triggers: List<String> = emptyList(),
     val triggerInput: String = "",
+    val scheduledAt: Instant? = null,
 )
 
 data class TaskUiState(
@@ -31,11 +36,16 @@ data class TaskUiState(
     val showSheet: Boolean = false,
     val editingTask: Task? = null,
     val form: TaskFormState = TaskFormState(),
+    val calendarEvents: List<CalendarEvent> = emptyList(),
+    val freeSlots: List<FreeSlot> = emptyList(),
+    val calendarPermissionGranted: Boolean = false,
 )
 
 @HiltViewModel
 class TaskViewModel @Inject constructor(
     private val taskRepository: TaskRepository,
+    private val calendarRepository: CalendarRepository,
+    private val availabilityService: AvailabilityService,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(TaskUiState())
@@ -45,7 +55,7 @@ class TaskViewModel @Inject constructor(
 
     private val _selectedDate = MutableStateFlow(LocalDate.now())
 
-    val tasks: StateFlow<List<Task>> = _selectedDate
+    private val tasks: StateFlow<List<Task>> = _selectedDate
         .flatMapLatest { taskRepository.observeTasksForDate(it) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
@@ -58,14 +68,31 @@ class TaskViewModel @Inject constructor(
         viewModelScope.launch {
             _selectedDate.collect { date ->
                 _uiState.update { it.copy(selectedDate = date) }
+                refreshCalendar(date)
             }
+        }
+        _uiState.update { it.copy(calendarPermissionGranted = calendarRepository.hasPermission()) }
+    }
+
+    fun onCalendarPermissionResult(granted: Boolean) {
+        _uiState.update { it.copy(calendarPermissionGranted = granted) }
+        if (granted) refreshCalendar(_selectedDate.value)
+    }
+
+    private fun refreshCalendar(date: LocalDate) {
+        viewModelScope.launch {
+            val events = calendarRepository.getEventsForDay(date)
+            val slots = availabilityService.findFreeSlots(events, date)
+            _uiState.update { it.copy(calendarEvents = events, freeSlots = slots) }
         }
     }
 
     fun selectDate(date: LocalDate) { _selectedDate.value = date }
 
     fun openAddSheet() {
-        _uiState.update { it.copy(showSheet = true, editingTask = null, form = TaskFormState(date = _selectedDate.value)) }
+        _uiState.update {
+            it.copy(showSheet = true, editingTask = null, form = TaskFormState(date = _selectedDate.value))
+        }
     }
 
     fun openEditSheet(task: Task) {
@@ -78,6 +105,7 @@ class TaskViewModel @Inject constructor(
                     description = task.description,
                     date = task.date,
                     triggers = task.triggers,
+                    scheduledAt = task.scheduledAt,
                 ),
             )
         }
@@ -89,6 +117,9 @@ class TaskViewModel @Inject constructor(
     fun updateDescription(v: String) { _uiState.update { it.copy(form = it.form.copy(description = v)) } }
     fun updateDate(v: LocalDate) { _uiState.update { it.copy(form = it.form.copy(date = v)) } }
     fun updateTriggerInput(v: String) { _uiState.update { it.copy(form = it.form.copy(triggerInput = v)) } }
+    fun pickScheduledSlot(slot: FreeSlot?) {
+        _uiState.update { it.copy(form = it.form.copy(scheduledAt = slot?.start)) }
+    }
 
     fun addTrigger() {
         val input = _uiState.value.form.triggerInput.trim().lowercase()
@@ -115,6 +146,7 @@ class TaskViewModel @Inject constructor(
             completed = existing?.completed ?: false,
             createdAt = existing?.createdAt ?: Instant.now(),
             triggers = form.triggers,
+            scheduledAt = form.scheduledAt,
         )
         viewModelScope.launch { taskRepository.upsertTask(task) }
         _uiState.update { it.copy(showSheet = false) }

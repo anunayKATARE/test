@@ -16,6 +16,7 @@ data class TaskEntity(
     val createdAt: Instant,
     val profileId: String? = null,
     val triggers: List<String> = emptyList(),
+    val scheduledAt: Long? = null,
 )
 
 fun TaskEntity.toDomain() = Task(
@@ -26,6 +27,7 @@ fun TaskEntity.toDomain() = Task(
     completed = completed,
     createdAt = createdAt,
     triggers = triggers,
+    scheduledAt = scheduledAt?.let { Instant.ofEpochMilli(it) },
 )
 
 fun Task.toEntity() = TaskEntity(
@@ -36,4 +38,5 @@ fun Task.toEntity() = TaskEntity(
     completed = completed,
     createdAt = createdAt,
     triggers = triggers,
+    scheduledAt = scheduledAt?.toEpochMilli(),
 )

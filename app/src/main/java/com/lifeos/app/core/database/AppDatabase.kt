@@ -56,7 +56,7 @@ import com.lifeos.app.feature.timelog.data.TimeLogEntity
         DayPlanEntity::class,
         TimeLogEntity::class,
     ],
-    version = 7,
+    version = 8,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)
