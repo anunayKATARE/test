@@ -45,6 +45,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -80,6 +81,13 @@ fun TaskScreen(viewModel: TaskViewModel = hiltViewModel()) {
     val calendarPermissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { granted -> viewModel.onCalendarPermissionResult(granted) }
+
+    // Auto-request on first entry if not yet granted
+    LaunchedEffect(state.calendarPermissionGranted) {
+        if (!state.calendarPermissionGranted) {
+            calendarPermissionLauncher.launch(Manifest.permission.READ_CALENDAR)
+        }
+    }
 
     LifeOSScaffold(
         topBar = { LifeOSTopBar(title = "Tasks") },
