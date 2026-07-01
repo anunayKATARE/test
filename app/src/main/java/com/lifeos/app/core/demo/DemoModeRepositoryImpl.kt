@@ -24,16 +24,25 @@ class DemoModeRepositoryImpl @Inject constructor(
 
     override val activeProfile: Flow<Profile?> =
         combine(dao.observeAll(), activeProfileIdFlow) { profiles, activeId ->
-            if (activeId == null) return@combine null
-            profiles.find { it.id == activeId }?.toDomain()
-                ?: DemoTemplate.fromId(activeId)?.let { template ->
-                    // Legacy: activated before the profiles table existed; synthesise from known template
+            val resolvedId = activeId ?: DemoModeRepository.DEFAULT_PROFILE_ID
+            profiles.find { it.id == resolvedId }?.toDomain()
+                ?: DemoTemplate.fromId(resolvedId)?.let { template ->
                     Profile(id = template.id, name = template.label, isDemo = true, demoTemplate = template, createdAt = Instant.EPOCH)
                 }
+                ?: if (resolvedId == DemoModeRepository.DEFAULT_PROFILE_ID) {
+                    Profile(id = DemoModeRepository.DEFAULT_PROFILE_ID, name = "My Data", isDemo = false, createdAt = Instant.EPOCH)
+                } else null
         }
 
     override val allProfiles: Flow<List<Profile>> =
-        dao.observeAll().map { list -> list.map { it.toDomain() } }
+        dao.observeAll().map { list ->
+            val profiles = list.map { it.toDomain() }
+            if (profiles.none { it.id == DemoModeRepository.DEFAULT_PROFILE_ID }) {
+                listOf(Profile(id = DemoModeRepository.DEFAULT_PROFILE_ID, name = "My Data", isDemo = false, createdAt = Instant.EPOCH)) + profiles
+            } else {
+                profiles
+            }
+        }
 
     override suspend fun setActiveProfile(profile: Profile?) {
         dataStore.edit { prefs ->
@@ -60,6 +69,10 @@ class DemoModeRepositoryImpl @Inject constructor(
 
     override suspend fun deleteProfile(id: String) {
         dao.deleteById(id)
+    }
+
+    override suspend fun renameProfile(id: String, name: String) {
+        dao.updateName(id, name)
     }
 
     companion object {

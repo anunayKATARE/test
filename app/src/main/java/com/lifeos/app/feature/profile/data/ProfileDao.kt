@@ -18,4 +18,7 @@ interface ProfileDao {
 
     @Query("SELECT * FROM profiles WHERE id = :id LIMIT 1")
     suspend fun getById(id: String): ProfileEntity?
+
+    @Query("UPDATE profiles SET name = :name WHERE id = :id")
+    suspend fun updateName(id: String, name: String)
 }

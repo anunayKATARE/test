@@ -19,6 +19,7 @@ data class ProfilesUiState(
     val activeProfile: Profile? = null,
     val userProfiles: List<Profile> = emptyList(),
     val showCreateDialog: Boolean = false,
+    val renamingProfile: Profile? = null,
 )
 
 @HiltViewModel
@@ -28,18 +29,22 @@ class DemoModeViewModel @Inject constructor(
 ) : ViewModel() {
 
     val demoTemplates: List<DemoTemplate> = DemoTemplate.entries
+    val defaultProfileId: String = DemoModeRepository.DEFAULT_PROFILE_ID
 
     private val _showCreateDialog = MutableStateFlow(false)
+    private val _renamingProfile = MutableStateFlow<Profile?>(null)
 
     val uiState: StateFlow<ProfilesUiState> = combine(
         demoModeRepository.activeProfile,
         demoModeRepository.allProfiles,
         _showCreateDialog,
-    ) { active, profiles, showCreate ->
+        _renamingProfile,
+    ) { active, profiles, showCreate, renamingProfile ->
         ProfilesUiState(
             activeProfile = active,
             userProfiles = profiles.filter { !it.isDemo },
             showCreateDialog = showCreate,
+            renamingProfile = renamingProfile,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ProfilesUiState())
 
@@ -60,10 +65,17 @@ class DemoModeViewModel @Inject constructor(
         viewModelScope.launch { demoModeManager.deleteProfile(profileId) }
     }
 
+    fun renameProfile(id: String, name: String) {
+        viewModelScope.launch { demoModeManager.renameProfile(id, name) }
+        _renamingProfile.value = null
+    }
+
     fun deactivate() {
         viewModelScope.launch { demoModeManager.deactivate() }
     }
 
     fun openCreateDialog() { _showCreateDialog.value = true }
     fun dismissCreateDialog() { _showCreateDialog.value = false }
+    fun startRename(profile: Profile) { _renamingProfile.value = profile }
+    fun dismissRenameDialog() { _renamingProfile.value = null }
 }

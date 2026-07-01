@@ -41,9 +41,13 @@ class DemoModeManagerImpl @Inject constructor(
         demoModeRepository.deleteProfile(profileId)
     }
 
+    override suspend fun renameProfile(id: String, name: String) {
+        demoModeRepository.renameProfile(id, name)
+    }
+
     override suspend fun deactivate() {
-        val active = demoModeRepository.activeProfile.first() ?: return
-        if (active.isDemo) seeders.forEach { it.clear(active.id) }
+        val active = demoModeRepository.activeProfile.first()
+        if (active?.isDemo == true) seeders.forEach { it.clear(active.id) }
         demoModeRepository.setActiveProfile(null)
         tourState.skipTour()
     }

@@ -5,5 +5,6 @@ interface DemoModeManager {
     suspend fun activateProfile(profile: Profile)
     suspend fun createUserProfile(name: String): Profile
     suspend fun deleteProfile(profileId: String)
+    suspend fun renameProfile(id: String, name: String)
     suspend fun deactivate()
 }

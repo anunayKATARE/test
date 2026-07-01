@@ -11,10 +11,9 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -52,38 +51,23 @@ fun DemoModeScreen(viewModel: DemoModeViewModel = hiltViewModel()) {
                 .padding(padding)
                 .padding(horizontal = 16.dp),
         ) {
-            // Active profile banner
+            // Your Profiles section
             item {
                 Spacer(Modifier.height(12.dp))
-                ActiveProfileBanner(
-                    activeProfile = state.activeProfile,
-                    onDeactivate = viewModel::deactivate,
+                Text(
+                    "Your Profiles",
+                    style = MaterialTheme.typography.titleSmall,
+                    color = MaterialTheme.colorScheme.primary,
                 )
-                Spacer(Modifier.height(20.dp))
-            }
-
-            // User profiles section
-            item {
-                Text("Your Profiles", style = MaterialTheme.typography.titleSmall,
-                    color = MaterialTheme.colorScheme.primary)
                 Spacer(Modifier.height(8.dp))
-            }
-            if (state.userProfiles.isEmpty()) {
-                item {
-                    Text(
-                        "No custom profiles yet. Create one to separate different areas of your life.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    Spacer(Modifier.height(8.dp))
-                }
             }
             items(state.userProfiles, key = { it.id }) { profile ->
                 UserProfileCard(
                     profile = profile,
                     isActive = state.activeProfile?.id == profile.id,
-                    onActivate = { viewModel.activateProfile(profile) },
-                    onDeactivate = viewModel::deactivate,
+                    isDefault = profile.id == viewModel.defaultProfileId,
+                    onSwitch = { viewModel.activateProfile(profile) },
+                    onRename = { viewModel.startRename(profile) },
                     onDelete = { viewModel.deleteProfile(profile.id) },
                 )
                 Spacer(Modifier.height(8.dp))
@@ -98,11 +82,14 @@ fun DemoModeScreen(viewModel: DemoModeViewModel = hiltViewModel()) {
 
             // Demo templates section
             item {
-                Text("Demo Profiles", style = MaterialTheme.typography.titleSmall,
-                    color = MaterialTheme.colorScheme.primary)
+                Text(
+                    "Demo Profiles",
+                    style = MaterialTheme.typography.titleSmall,
+                    color = MaterialTheme.colorScheme.primary,
+                )
                 Spacer(Modifier.height(4.dp))
                 Text(
-                    "Explore LifeOS with pre-filled sample data. Your real data stays safe and comes back when you exit.",
+                    "Explore LifeOS with pre-filled sample data. Your real data stays safe.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -121,6 +108,14 @@ fun DemoModeScreen(viewModel: DemoModeViewModel = hiltViewModel()) {
         }
     }
 
+    state.renamingProfile?.let { profile ->
+        RenameProfileDialog(
+            currentName = profile.name,
+            onConfirm = { viewModel.renameProfile(profile.id, it) },
+            onDismiss = viewModel::dismissRenameDialog,
+        )
+    }
+
     if (state.showCreateDialog) {
         CreateProfileDialog(
             onConfirm = viewModel::createUserProfile,
@@ -130,78 +125,73 @@ fun DemoModeScreen(viewModel: DemoModeViewModel = hiltViewModel()) {
 }
 
 @Composable
-private fun ActiveProfileBanner(activeProfile: Profile?, onDeactivate: () -> Unit) {
-    if (activeProfile == null) {
-        LifeOSCard(modifier = Modifier.fillMaxWidth()) {
-            Row(
-                modifier = Modifier.padding(16.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                Icon(Icons.Filled.Person, contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary)
-                Text("Viewing your own data", style = MaterialTheme.typography.bodyMedium)
-            }
-        }
-    } else {
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
-        ) {
-            Column(modifier = Modifier.padding(16.dp)) {
-                Text(
-                    "Active: ${activeProfile.name}",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer,
-                )
-                Spacer(Modifier.height(4.dp))
-                Text(
-                    if (activeProfile.isDemo) "Demo data is shown. Your own entries are hidden, not deleted."
-                    else "This profile's data is shown.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer,
-                )
-                Spacer(Modifier.height(12.dp))
-                OutlinedButton(
-                    onClick = onDeactivate,
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.onPrimaryContainer),
-                ) { Text("Exit to My Data") }
-            }
-        }
-    }
-}
-
-@Composable
 private fun UserProfileCard(
     profile: Profile,
     isActive: Boolean,
-    onActivate: () -> Unit,
-    onDeactivate: () -> Unit,
+    isDefault: Boolean,
+    onSwitch: () -> Unit,
+    onRename: () -> Unit,
     onDelete: () -> Unit,
 ) {
-    LifeOSCard(modifier = Modifier.fillMaxWidth()) {
-        Row(
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(profile.name, style = MaterialTheme.typography.titleMedium)
-                if (isActive) {
-                    Text("Active", style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.primary)
+    val cardColors = if (isActive) {
+        CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
+    } else {
+        CardDefaults.cardColors()
+    }
+    Card(modifier = Modifier.fillMaxWidth(), colors = cardColors) {
+        Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        profile.name,
+                        style = MaterialTheme.typography.titleMedium,
+                        color = if (isActive) MaterialTheme.colorScheme.onPrimaryContainer
+                                else MaterialTheme.colorScheme.onSurface,
+                    )
+                    if (isActive) {
+                        Text(
+                            "Active",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.primary,
+                        )
+                    }
+                    if (isDefault) {
+                        Text(
+                            "Default profile",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+                Row {
+                    IconButton(onClick = onRename) {
+                        Icon(
+                            Icons.Filled.Edit,
+                            contentDescription = "Rename",
+                            tint = if (isActive) MaterialTheme.colorScheme.onPrimaryContainer
+                                   else MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    if (!isDefault) {
+                        IconButton(onClick = onDelete, enabled = !isActive) {
+                            Icon(
+                                Icons.Filled.Delete,
+                                contentDescription = "Delete",
+                                tint = if (isActive) MaterialTheme.colorScheme.outlineVariant
+                                       else MaterialTheme.colorScheme.error,
+                            )
+                        }
+                    }
                 }
             }
-            Row {
-                if (isActive) {
-                    TextButton(onClick = onDeactivate) { Text("Exit") }
-                } else {
-                    TextButton(onClick = onActivate) { Text("Switch") }
-                }
-                IconButton(onClick = onDelete, enabled = !isActive) {
-                    Icon(Icons.Filled.Delete, contentDescription = "Delete",
-                        tint = if (isActive) MaterialTheme.colorScheme.outlineVariant
-                        else MaterialTheme.colorScheme.error)
+            if (!isActive) {
+                Spacer(Modifier.height(8.dp))
+                Button(onClick = onSwitch, modifier = Modifier.fillMaxWidth()) {
+                    Text("Switch to ${profile.name}")
                 }
             }
         }
@@ -219,14 +209,20 @@ private fun DemoTemplateCard(
         Column(modifier = Modifier.padding(16.dp)) {
             Text(template.label, style = MaterialTheme.typography.titleMedium)
             Spacer(Modifier.height(4.dp))
-            Text(template.description, style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(
+                template.description,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
             Spacer(Modifier.height(12.dp))
             if (isActive) {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("Active", style = MaterialTheme.typography.labelMedium,
+                    Text(
+                        "Active",
+                        style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.align(Alignment.CenterVertically))
+                        modifier = Modifier.align(Alignment.CenterVertically),
+                    )
                     OutlinedButton(onClick = onDeactivate) { Text("Exit Demo") }
                 }
             } else {
@@ -236,6 +232,31 @@ private fun DemoTemplateCard(
             }
         }
     }
+}
+
+@Composable
+private fun RenameProfileDialog(currentName: String, onConfirm: (String) -> Unit, onDismiss: () -> Unit) {
+    var name by remember { mutableStateOf(currentName) }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Rename Profile") },
+        text = {
+            OutlinedTextField(
+                value = name,
+                onValueChange = { name = it },
+                label = { Text("Profile name") },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+            )
+        },
+        confirmButton = {
+            Button(
+                onClick = { if (name.isNotBlank()) onConfirm(name.trim()) },
+                enabled = name.isNotBlank(),
+            ) { Text("Save") }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+    )
 }
 
 @Composable
@@ -261,8 +282,10 @@ private fun CreateProfileDialog(onConfirm: (String) -> Unit, onDismiss: () -> Un
             }
         },
         confirmButton = {
-            Button(onClick = { if (name.isNotBlank()) onConfirm(name.trim()) },
-                enabled = name.isNotBlank()) { Text("Create") }
+            Button(
+                onClick = { if (name.isNotBlank()) onConfirm(name.trim()) },
+                enabled = name.isNotBlank(),
+            ) { Text("Create") }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
     )

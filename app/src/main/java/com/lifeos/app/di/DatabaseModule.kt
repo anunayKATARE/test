@@ -2,6 +2,7 @@ package com.lifeos.app.di
 
 import android.content.Context
 import androidx.room.Room
+import androidx.room.RoomDatabase
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 import com.lifeos.app.core.database.AppDatabase
@@ -79,11 +80,36 @@ object DatabaseModule {
         }
     }
 
+    val MIGRATION_5_6 = object : Migration(5, 6) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL(
+                "INSERT OR IGNORE INTO profiles (id, name, isDemo, demoTemplate, createdAt) VALUES ('__default__', 'My Data', 0, NULL, 0)",
+            )
+            for (table in listOf(
+                "categories", "journal_entries", "mood_entries", "habits", "habit_completions",
+                "goals", "mental_toughness_entries", "self_belief_reflections", "reflection_entries",
+                "problems", "tasks", "inspiration_items", "check_in_sessions",
+            )) {
+                db.execSQL("UPDATE $table SET profileId = '__default__' WHERE profileId IS NULL")
+            }
+        }
+    }
+
+    private val ON_CREATE_CALLBACK = object : RoomDatabase.Callback() {
+        override fun onCreate(db: SupportSQLiteDatabase) {
+            super.onCreate(db)
+            db.execSQL(
+                "INSERT OR IGNORE INTO profiles (id, name, isDemo, demoTemplate, createdAt) VALUES ('__default__', 'My Data', 0, NULL, 0)",
+            )
+        }
+    }
+
     @Provides
     @Singleton
     fun provideAppDatabase(@ApplicationContext context: Context): AppDatabase =
         Room.databaseBuilder(context, AppDatabase::class.java, AppDatabase.DATABASE_NAME)
-            .addMigrations(MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
+            .addMigrations(MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
+            .addCallback(ON_CREATE_CALLBACK)
             .fallbackToDestructiveMigration()
             .build()
 

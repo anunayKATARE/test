@@ -50,7 +50,7 @@ import com.lifeos.app.feature.task.data.TaskEntity
         CheckInCommitmentEntity::class,
         ProfileEntity::class,
     ],
-    version = 5,
+    version = 6,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)

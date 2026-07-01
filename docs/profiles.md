@@ -8,11 +8,13 @@
 
 A **Profile** is a named data context. All entries (goals, habits, moods, etc.) belong to exactly one profile. The active profile determines which data the user sees.
 
-- `null` active profile → user's own real data (`profileId = null` on entities)
-- User-created profile → custom named context (e.g., "Work", "Self Growth")
-- Demo profile → pre-seeded sample data, marked `isDemo = true`
+- **Default profile** (`id = "__default__"`) → the profile every user always has; named "My Data" but renameable; cannot be deleted
+- **User-created profile** → custom named context (e.g., "Work", "Self Growth"); renameable and deletable
+- **Demo profile** → pre-seeded sample data, marked `isDemo = true`; one card per `DemoTemplate`
 
 Switching profiles is instant — it's a single DataStore write; Room Flows propagate the change automatically.
+
+`DemoModeRepository.DEFAULT_PROFILE_ID = "__default__"` is the stable ID reserved for the default profile. All user data created when no demo is active uses `profileId = "__default__"` (migrated from the old `profileId = null` in DB v5→v6).
 
 ---
 
@@ -101,11 +103,10 @@ All dates in seeded data are relative to `anchor`, so re-activating a demo alway
 
 **Screen**: `DemoModeScreen.kt` (route: `demo_mode`, label: "Profiles")
 
-Three sections:
+Two sections:
 
-1. **Active Profile Banner** — shows which profile is active; "Exit to My Data" button when a profile is active
-2. **Your Profiles** — user-created profiles with Switch/Delete actions; "+ Add Profile" button opens a dialog
-3. **Demo Profiles** — one card per `DemoTemplate` with "Start Demo" / "Exit Demo" button
+1. **Your Profiles** — all non-demo profiles (default profile first, then user-created); active profile shows a highlighted card; inactive ones show a "Switch to X" button; all have a rename (pencil) icon; user-created profiles also have a delete (trash) icon; "+ Add Profile" button opens a dialog
+2. **Demo Profiles** — one card per `DemoTemplate`; "Start Demo" / "Exit Demo" button; "Exit Demo" switches back to the default profile
 
 **ViewModel**: `DemoModeViewModel` exposes `ProfilesUiState`:
 ```kotlin
