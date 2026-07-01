@@ -1,7 +1,7 @@
 package com.lifeos.app.feature.mentaltoughness.data
 
-import com.lifeos.app.core.demo.DemoProfile
 import com.lifeos.app.core.demo.DemoSeeder
+import com.lifeos.app.core.demo.DemoTemplate
 import com.lifeos.app.feature.mentaltoughness.domain.MentalToughnessType
 import java.time.Instant
 import java.time.temporal.ChronoUnit
@@ -11,9 +11,8 @@ class MentalToughnessDemoSeeder @Inject constructor(
     private val dao: MentalToughnessDao,
 ) : DemoSeeder {
 
-    override suspend fun seed(profileId: String) {
-        val now = Instant.now()
-        val entry = if (DemoProfile.fromId(profileId) == DemoProfile.WORK) {
+    override suspend fun seed(profileId: String, template: DemoTemplate, anchor: Instant) {
+        val entry = if (template == DemoTemplate.WORK) {
             MentalToughnessType.DIFFICULT_CONVERSATION to Triple(
                 "Pushed back on an unrealistic deadline",
                 "Nervous, worried about seeming difficult",
@@ -30,9 +29,10 @@ class MentalToughnessDemoSeeder @Inject constructor(
         val (title, before, after) = details
         dao.upsert(
             MentalToughnessEntity(
-                id = "${profileId}_mt_1", type = type, dateTime = now.minus(2, ChronoUnit.DAYS), title = title,
-                description = "", emotionBefore = before, emotionAfter = after, outcome = "", lessonLearned = "",
-                profileId = profileId,
+                id = "${profileId}_mt_1", type = type,
+                dateTime = anchor.minus(2, ChronoUnit.DAYS), title = title,
+                description = "", emotionBefore = before, emotionAfter = after,
+                outcome = "", lessonLearned = "", profileId = profileId,
             ),
         )
     }

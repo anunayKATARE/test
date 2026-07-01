@@ -55,6 +55,6 @@ val moreMenuItems = listOf(
     MoreMenuItem(LifeOSRoutes.PROBLEM_SOLVER, "Problem Solver"),
     MoreMenuItem(LifeOSRoutes.ANALYTICS, "Analytics"),
     MoreMenuItem(LifeOSRoutes.SEARCH, "Search"),
-    MoreMenuItem(LifeOSRoutes.DEMO_MODE, "Demo Mode"),
+    MoreMenuItem(LifeOSRoutes.DEMO_MODE, "Profiles"),
     MoreMenuItem(LifeOSRoutes.BACKUP, "Backup & Restore"),
 )

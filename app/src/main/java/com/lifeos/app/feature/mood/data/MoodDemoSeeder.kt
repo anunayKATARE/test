@@ -1,7 +1,7 @@
 package com.lifeos.app.feature.mood.data
 
-import com.lifeos.app.core.demo.DemoProfile
 import com.lifeos.app.core.demo.DemoSeeder
+import com.lifeos.app.core.demo.DemoTemplate
 import com.lifeos.app.feature.mood.domain.Emotion
 import java.time.Instant
 import java.time.temporal.ChronoUnit
@@ -11,9 +11,8 @@ class MoodDemoSeeder @Inject constructor(
     private val dao: MoodDao,
 ) : DemoSeeder {
 
-    override suspend fun seed(profileId: String) {
-        val now = Instant.now()
-        val entries = if (DemoProfile.fromId(profileId) == DemoProfile.WORK) {
+    override suspend fun seed(profileId: String, template: DemoTemplate, anchor: Instant) {
+        val entries = if (template == DemoTemplate.WORK) {
             listOf(
                 (Emotion.ANXIETY to "Tight deadline") to "Worried about the release date slipping.",
                 (Emotion.PRIDE to "Demo went well") to "Stakeholders loved the new feature demo.",
@@ -30,10 +29,11 @@ class MoodDemoSeeder @Inject constructor(
             val (emotion, trigger) = data
             dao.upsert(
                 MoodEntryEntity(
-                    id = "${profileId}_mood_${index + 1}", dateTime = now.minus((index + 1).toLong(), ChronoUnit.DAYS),
-                    emotion = emotion, intensity = 6, trigger = trigger, peopleInvolved = emptyList(), situation = "",
-                    automaticThoughts = "", physicalSensations = "", actionsTaken = "", recoveryTimeMinutes = null,
-                    lessonsLearned = lesson, categoryId = null, profileId = profileId,
+                    id = "${profileId}_mood_${index + 1}",
+                    dateTime = anchor.minus((index + 1).toLong(), ChronoUnit.DAYS),
+                    emotion = emotion, intensity = 6, trigger = trigger, peopleInvolved = emptyList(),
+                    situation = "", automaticThoughts = "", physicalSensations = "", actionsTaken = "",
+                    recoveryTimeMinutes = null, lessonsLearned = lesson, categoryId = null, profileId = profileId,
                 ),
             )
         }

@@ -1,7 +1,7 @@
 package com.lifeos.app.feature.selfbelief.data
 
-import com.lifeos.app.core.demo.DemoProfile
 import com.lifeos.app.core.demo.DemoSeeder
+import com.lifeos.app.core.demo.DemoTemplate
 import java.time.Instant
 import java.time.temporal.ChronoUnit
 import javax.inject.Inject
@@ -10,11 +10,10 @@ class SelfBeliefDemoSeeder @Inject constructor(
     private val dao: SelfBeliefDao,
 ) : DemoSeeder {
 
-    override suspend fun seed(profileId: String) {
-        val now = Instant.now()
-        val reflection = if (DemoProfile.fromId(profileId) == DemoProfile.WORK) {
+    override suspend fun seed(profileId: String, template: DemoTemplate, anchor: Instant) {
+        val reflection = if (template == DemoTemplate.WORK) {
             SelfBeliefEntity(
-                id = "${profileId}_sb_1", dateTime = now.minus(3, ChronoUnit.DAYS),
+                id = "${profileId}_sb_1", dateTime = anchor.minus(3, ChronoUnit.DAYS),
                 whatHappened = "Felt like I didn't deserve my promotion.",
                 storyTelling = "I'm not as skilled as the rest of the team.",
                 evidenceFor = "I still have to look things up sometimes.",
@@ -26,7 +25,7 @@ class SelfBeliefDemoSeeder @Inject constructor(
             )
         } else {
             SelfBeliefEntity(
-                id = "${profileId}_sb_1", dateTime = now.minus(3, ChronoUnit.DAYS),
+                id = "${profileId}_sb_1", dateTime = anchor.minus(3, ChronoUnit.DAYS),
                 whatHappened = "Skipped a workout and felt like a failure.",
                 storyTelling = "I never stick to anything.",
                 evidenceFor = "I've missed a few sessions this month.",

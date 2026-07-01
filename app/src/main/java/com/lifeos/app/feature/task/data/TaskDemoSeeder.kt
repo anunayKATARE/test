@@ -1,7 +1,7 @@
 package com.lifeos.app.feature.task.data
 
-import com.lifeos.app.core.demo.DemoProfile
 import com.lifeos.app.core.demo.DemoSeeder
+import com.lifeos.app.core.demo.DemoTemplate
 import java.time.Instant
 import java.time.LocalDate
 import javax.inject.Inject
@@ -10,10 +10,9 @@ class TaskDemoSeeder @Inject constructor(
     private val dao: TaskDao,
 ) : DemoSeeder {
 
-    override suspend fun seed(profileId: String) {
-        val now = Instant.now()
+    override suspend fun seed(profileId: String, template: DemoTemplate, anchor: Instant) {
         val today = LocalDate.now()
-        val titles = if (DemoProfile.fromId(profileId) == DemoProfile.WORK) {
+        val titles = if (template == DemoTemplate.WORK) {
             listOf("Review PR #482", "Prep sprint demo", "1:1 with manager")
         } else {
             listOf("Buy groceries", "Call mom", "Gym session")
@@ -21,8 +20,8 @@ class TaskDemoSeeder @Inject constructor(
         titles.forEachIndexed { index, title ->
             dao.upsertTask(
                 TaskEntity(
-                    id = "${profileId}_task_${index + 1}", title = title, description = "", date = today,
-                    completed = index == 0, createdAt = now, profileId = profileId,
+                    id = "${profileId}_task_${index + 1}", title = title, description = "",
+                    date = today, completed = index == 0, createdAt = anchor, profileId = profileId,
                 ),
             )
         }

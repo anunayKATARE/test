@@ -1,7 +1,7 @@
 package com.lifeos.app.feature.habit.data
 
-import com.lifeos.app.core.demo.DemoProfile
 import com.lifeos.app.core.demo.DemoSeeder
+import com.lifeos.app.core.demo.DemoTemplate
 import com.lifeos.app.feature.habit.domain.HabitDifficulty
 import com.lifeos.app.feature.habit.domain.HabitImportance
 import com.lifeos.app.feature.habit.domain.HabitScheduleType
@@ -13,9 +13,8 @@ class HabitDemoSeeder @Inject constructor(
     private val dao: HabitDao,
 ) : DemoSeeder {
 
-    override suspend fun seed(profileId: String) {
-        val now = Instant.now()
-        val titles = if (DemoProfile.fromId(profileId) == DemoProfile.WORK) {
+    override suspend fun seed(profileId: String, template: DemoTemplate, anchor: Instant) {
+        val titles = if (template == DemoTemplate.WORK) {
             listOf("Deep work block", "Inbox zero", "Daily standup notes")
         } else {
             listOf("Morning meditation", "Drink 8 glasses of water", "Evening walk")
@@ -25,8 +24,9 @@ class HabitDemoSeeder @Inject constructor(
             dao.upsertHabit(
                 HabitEntity(
                     id = habitId, title = title, description = "", scheduleType = HabitScheduleType.DAILY,
-                    customDaysOfWeek = emptyList(), difficulty = HabitDifficulty.EASY, importance = HabitImportance.MEDIUM,
-                    categoryId = null, isArchived = false, createdAt = now, profileId = profileId,
+                    customDaysOfWeek = emptyList(), difficulty = HabitDifficulty.EASY,
+                    importance = HabitImportance.MEDIUM, categoryId = null, isArchived = false,
+                    createdAt = anchor, profileId = profileId,
                 ),
             )
             (0..6).forEach { daysAgo ->
@@ -34,8 +34,8 @@ class HabitDemoSeeder @Inject constructor(
                 val completed = (daysAgo + index) % 3 != 0
                 dao.upsertCompletion(
                     HabitCompletionEntity(
-                        id = "${habitId}_$date", habitId = habitId, date = date, completed = completed, note = "",
-                        profileId = profileId,
+                        id = "${habitId}_$date", habitId = habitId, date = date,
+                        completed = completed, note = "", profileId = profileId,
                     ),
                 )
             }

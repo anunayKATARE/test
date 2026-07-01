@@ -1,7 +1,7 @@
 package com.lifeos.app.feature.reflection.data
 
-import com.lifeos.app.core.demo.DemoProfile
 import com.lifeos.app.core.demo.DemoSeeder
+import com.lifeos.app.core.demo.DemoTemplate
 import com.lifeos.app.feature.reflection.domain.ReflectionTemplateType
 import java.time.Instant
 import java.time.temporal.ChronoUnit
@@ -11,9 +11,8 @@ class ReflectionDemoSeeder @Inject constructor(
     private val dao: ReflectionDao,
 ) : DemoSeeder {
 
-    override suspend fun seed(profileId: String) {
-        val now = Instant.now()
-        val answers = if (DemoProfile.fromId(profileId) == DemoProfile.WORK) {
+    override suspend fun seed(profileId: String, template: DemoTemplate, anchor: Instant) {
+        val answers = if (template == DemoTemplate.WORK) {
             mapOf(
                 "What were my wins this week?" to "Shipped the onboarding redesign.",
                 "What did I struggle with?" to "Estimating sprint scope accurately.",
@@ -26,10 +25,11 @@ class ReflectionDemoSeeder @Inject constructor(
                 "What am I grateful for tonight?" to "A good call with an old friend.",
             )
         }
-        val type = if (DemoProfile.fromId(profileId) == DemoProfile.WORK) ReflectionTemplateType.WEEKLY_REVIEW else ReflectionTemplateType.EVENING
+        val type = if (template == DemoTemplate.WORK) ReflectionTemplateType.WEEKLY_REVIEW else ReflectionTemplateType.EVENING
         dao.upsert(
             ReflectionEntity(
-                id = "${profileId}_reflection_1", templateType = type, dateTime = now.minus(1, ChronoUnit.DAYS),
+                id = "${profileId}_reflection_1", templateType = type,
+                dateTime = anchor.minus(1, ChronoUnit.DAYS),
                 title = "", answers = answers, tags = emptyList(), profileId = profileId,
             ),
         )
