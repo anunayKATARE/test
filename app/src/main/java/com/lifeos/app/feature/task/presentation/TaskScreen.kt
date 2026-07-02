@@ -230,6 +230,7 @@ fun TaskScreen(viewModel: TaskViewModel = hiltViewModel()) {
                 onPickSlot = viewModel::pickScheduledSlot,
                 onPickTime = viewModel::pickScheduledTime,
                 onIsChoreChange = viewModel::updateIsChore,
+                onHabitSelect = viewModel::selectHabitForTask,
                 onStartTimeChange = viewModel::updateStartTimeText,
                 onStartTimeDone = viewModel::applyStartTimeText,
                 onEndTimeChange = viewModel::updateEndTimeText,
@@ -636,6 +637,7 @@ private fun TaskFormSheet(
     onPickSlot: (FreeSlot?) -> Unit,
     onPickTime: (Instant) -> Unit,
     onIsChoreChange: (Boolean) -> Unit,
+    onHabitSelect: (HabitDayItem) -> Unit,
     onStartTimeChange: (String) -> Unit,
     onStartTimeDone: () -> Unit,
     onEndTimeChange: (String) -> Unit,
@@ -768,23 +770,24 @@ private fun TaskFormSheet(
             }
         }
 
-        // Today's habits — show related ones highlighted
+        // Today's habits — tapping a chip pre-fills the title for quick scheduling
         if (scheduledHabits.isNotEmpty()) {
             Spacer(Modifier.height(12.dp))
             Text(
-                "Today's Habits",
+                "Today's Habits — tap to schedule",
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             Spacer(Modifier.height(4.dp))
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 scheduledHabits.forEach { habit ->
-                    val isRelated = form.triggers.isNotEmpty() && habit.triggers.any { ht ->
+                    val isSelected = form.title == habit.title
+                    val isRelated = !isSelected && form.triggers.isNotEmpty() && habit.triggers.any { ht ->
                         form.triggers.any { ft -> ht.contains(ft, ignoreCase = true) || ft.contains(ht, ignoreCase = true) }
                     }
                     FilterChip(
-                        selected = isRelated,
-                        onClick = {},
+                        selected = isSelected || isRelated,
+                        onClick = { onHabitSelect(habit) },
                         label = { Text(habit.title, style = MaterialTheme.typography.labelSmall) },
                         leadingIcon = if (habit.completedToday) {
                             { Icon(Icons.Filled.Check, null, modifier = Modifier.size(14.dp)) }

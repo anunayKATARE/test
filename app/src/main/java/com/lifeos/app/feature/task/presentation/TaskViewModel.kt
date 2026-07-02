@@ -183,6 +183,10 @@ class TaskViewModel @Inject constructor(
 
     fun updateIsChore(v: Boolean) { _formAndSheet.update { it.copy(form = it.form.copy(isChore = v)) } }
 
+    fun selectHabitForTask(item: HabitDayItem) {
+        _formAndSheet.update { it.copy(form = it.form.copy(title = item.title, isChore = false)) }
+    }
+
     fun updateStartTimeText(v: String) {
         _formAndSheet.update { it.copy(form = it.form.copy(startTimeText = v)) }
     }
