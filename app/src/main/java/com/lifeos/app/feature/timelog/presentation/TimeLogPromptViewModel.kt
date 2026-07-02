@@ -34,15 +34,27 @@ class TimeLogPromptViewModel @Inject constructor(
         val activeTimer = timeLogRepository.observeActiveTimer().first()
         if (activeTimer != null) return
         val lastEntry = timeLogRepository.getLastEntryMillis()
+        val now = System.currentTimeMillis()
         if (lastEntry == 0L) {
-            // Fresh install — wait 10 minutes before the first nudge
-            delay(TEN_MIN_MILLIS)
-            if (timeLogRepository.observeActiveTimer().first() == null) {
-                _showPrompt.value = true
+            // Fresh install — track first-open time across sessions; nudge after 10 minutes total
+            var firstOpen = timeLogRepository.getFirstOpenMillis()
+            if (firstOpen == 0L) {
+                firstOpen = now
+                timeLogRepository.setFirstOpenMillis(now)
+            }
+            val elapsed = now - firstOpen
+            if (elapsed >= TEN_MIN_MILLIS) {
+                if (timeLogRepository.observeActiveTimer().first() == null) _showPrompt.value = true
+            } else {
+                delay(TEN_MIN_MILLIS - elapsed)
+                if (timeLogRepository.observeActiveTimer().first() == null &&
+                    timeLogRepository.getLastEntryMillis() == 0L) {
+                    _showPrompt.value = true
+                }
             }
             return
         }
-        if (System.currentTimeMillis() - lastEntry >= THIRTY_MIN_MILLIS) {
+        if (now - lastEntry >= THIRTY_MIN_MILLIS) {
             _showPrompt.value = true
         }
     }

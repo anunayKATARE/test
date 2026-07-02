@@ -13,5 +13,7 @@ interface TimeLogRepository {
     suspend fun getRecentChores(): List<String>
     suspend fun getLastEntryMillis(): Long
     suspend fun touchLastEntryMillis()
+    suspend fun getFirstOpenMillis(): Long
+    suspend fun setFirstOpenMillis(millis: Long)
     suspend fun deleteAllByProfile(profileId: String)
 }

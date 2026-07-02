@@ -1,10 +1,5 @@
 package com.lifeos.app.core.navigation
 
-import android.Manifest
-import android.content.pm.PackageManager
-import android.os.Build
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -18,7 +13,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavDestination.Companion.hierarchy
@@ -70,23 +64,6 @@ fun LifeOSNavHost() {
     val showPlanReminder by planReminderViewModel.showDialog.collectAsStateWithLifecycle()
     val timeLogPromptViewModel: TimeLogPromptViewModel = hiltViewModel()
     val showTimeLogPrompt by timeLogPromptViewModel.showPrompt.collectAsStateWithLifecycle()
-
-    val context = LocalContext.current
-    val permLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.RequestMultiplePermissions()
-    ) { /* Grant is system-wide; ViewModels read hasPermission() on next creation */ }
-    LaunchedEffect(Unit) {
-        val permsToRequest = buildList {
-            if (context.checkSelfPermission(Manifest.permission.READ_CALENDAR)
-                != PackageManager.PERMISSION_GRANTED
-            ) add(Manifest.permission.READ_CALENDAR)
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
-                context.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS)
-                != PackageManager.PERMISSION_GRANTED
-            ) add(Manifest.permission.POST_NOTIFICATIONS)
-        }
-        if (permsToRequest.isNotEmpty()) permLauncher.launch(permsToRequest.toTypedArray())
-    }
 
     LaunchedEffect(checkInState.activeSession?.isOverdue) {
         if (checkInState.activeSession?.isOverdue == true) checkInViewModel.openDialog()

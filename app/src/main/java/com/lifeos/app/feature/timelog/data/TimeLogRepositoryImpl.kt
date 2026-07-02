@@ -79,9 +79,17 @@ class TimeLogRepositoryImpl @Inject constructor(
         dataStore.edit { it[LAST_TIME_LOG_ENTRY_KEY] = System.currentTimeMillis() }
     }
 
+    override suspend fun getFirstOpenMillis(): Long =
+        dataStore.data.first()[FIRST_OPEN_KEY] ?: 0L
+
+    override suspend fun setFirstOpenMillis(millis: Long) {
+        dataStore.edit { it[FIRST_OPEN_KEY] = millis }
+    }
+
     override suspend fun deleteAllByProfile(profileId: String) = dao.deleteAllByProfile(profileId)
 
     companion object {
         private val LAST_TIME_LOG_ENTRY_KEY = longPreferencesKey("last_time_log_entry")
+        private val FIRST_OPEN_KEY = longPreferencesKey("first_open_time")
     }
 }

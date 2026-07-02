@@ -7,6 +7,7 @@ import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -15,6 +16,7 @@ import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.absoluteOffset
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -24,11 +26,14 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
@@ -45,6 +50,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -54,10 +60,12 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -92,7 +100,6 @@ fun TaskScreen(viewModel: TaskViewModel = hiltViewModel()) {
     ) { granted ->
         viewModel.onCalendarPermissionResult(granted)
         if (!granted) {
-            // If the system didn't show a rationale before asking, the user chose "Never ask again"
             val activity = context as? android.app.Activity
             permissionDeniedPermanently = activity?.shouldShowRequestPermissionRationale(
                 Manifest.permission.READ_CALENDAR
@@ -100,7 +107,6 @@ fun TaskScreen(viewModel: TaskViewModel = hiltViewModel()) {
         }
     }
 
-    // Fire once per screen entry; if not yet granted, show the system dialog immediately
     LaunchedEffect(Unit) {
         if (!state.calendarPermissionGranted) {
             calendarPermissionLauncher.launch(Manifest.permission.READ_CALENDAR)
@@ -198,12 +204,18 @@ fun TaskScreen(viewModel: TaskViewModel = hiltViewModel()) {
                 form = state.form,
                 isEditing = state.editingTask != null,
                 freeSlots = state.freeSlots,
+                scheduledHabits = state.scheduledHabits,
+                tasks = state.tasks,
+                calendarEvents = state.calendarEvents,
+                date = state.selectedDate,
                 onTitleChange = viewModel::updateTitle,
                 onDescriptionChange = viewModel::updateDescription,
                 onTriggerInputChange = viewModel::updateTriggerInput,
                 onAddTrigger = viewModel::addTrigger,
                 onRemoveTrigger = viewModel::removeTrigger,
                 onPickSlot = viewModel::pickScheduledSlot,
+                onPickTime = viewModel::pickScheduledTime,
+                onIsChoreChange = viewModel::updateIsChore,
                 onSave = viewModel::saveTask,
                 onDismiss = viewModel::dismissSheet,
             )
@@ -271,7 +283,6 @@ private fun DayBusyBar(events: List<CalendarEvent>, date: LocalDate) {
     val busyColor = MaterialTheme.colorScheme.errorContainer
     val nonAllDay = events.filter { !it.isAllDay }
 
-    // Proportional hour labels: each placed at the exact fractional position it represents
     val windowHours = (windowEndHour - windowStartHour).toFloat()
     val hourLabels = listOf(7 to "7am", 9 to "9am", 11 to "11am", 13 to "1pm",
         15 to "3pm", 17 to "5pm", 19 to "7pm", 22 to "10pm")
@@ -379,6 +390,13 @@ private fun TaskCard(task: Task, onToggle: () -> Unit, onEdit: () -> Unit, onDel
                             )
                         }
                     }
+                    if (task.isChore) {
+                        Text(
+                            "Chore",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.tertiary,
+                        )
+                    }
                     if (task.triggers.isNotEmpty()) {
                         Spacer(Modifier.height(2.dp))
                         Text(
@@ -429,22 +447,173 @@ private fun HabitDayCard(item: HabitDayItem, onToggle: () -> Unit) {
     }
 }
 
+// Vertical day timeline — tapping sets scheduledAt to the tapped time
+@Composable
+private fun VerticalDayTimeline(
+    date: LocalDate,
+    events: List<CalendarEvent>,
+    tasks: List<Task>,
+    selectedTime: Instant?,
+    onTimeSelected: (Instant) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val zone = ZoneId.systemDefault()
+    val windowStartHour = 6
+    val windowEndHour = 22
+    val totalWindowMinutes = ((windowEndHour - windowStartHour) * 60).toFloat()
+    val windowStartInstant = date.atTime(windowStartHour, 0).atZone(zone).toInstant()
+    val windowEndInstant = date.atTime(windowEndHour, 0).atZone(zone).toInstant()
+    val labelWidth = 34.dp
+
+    BoxWithConstraints(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(260.dp)
+            .clip(RoundedCornerShape(8.dp))
+            .background(MaterialTheme.colorScheme.surfaceVariant)
+            .pointerInput(date) {
+                detectTapGestures { offset ->
+                    val frac = (offset.y / size.height.toFloat()).coerceIn(0f, 1f)
+                    val minutes = (frac * totalWindowMinutes).toLong()
+                    val rounded = (minutes / 30) * 30
+                    onTimeSelected(windowStartInstant.plusSeconds(rounded * 60))
+                }
+            }
+    ) {
+        val h = maxHeight
+        val w = maxWidth
+        val contentWidth = w - labelWidth
+
+        // Hour guide lines every 2 hours
+        for (hour in windowStartHour..windowEndHour step 2) {
+            val frac = (hour - windowStartHour).toFloat() / (windowEndHour - windowStartHour)
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .absoluteOffset(y = h * frac)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(1.dp)
+                        .background(MaterialTheme.colorScheme.outline.copy(alpha = 0.25f))
+                )
+                Text(
+                    text = when {
+                        hour < 12 -> "${hour}am"
+                        hour == 12 -> "12pm"
+                        else -> "${hour - 12}pm"
+                    },
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(start = 4.dp, top = 2.dp),
+                )
+            }
+        }
+
+        // Calendar events (error container color, left half of content area)
+        events.filter { !it.isAllDay }.forEach { event ->
+            val s = maxOf(event.startAt, windowStartInstant)
+            val e = minOf(event.endAt, windowEndInstant)
+            if (s < e) {
+                val topFrac = Duration.between(windowStartInstant, s).toMinutes().toFloat() / totalWindowMinutes
+                val heightFrac = Duration.between(s, e).toMinutes().toFloat() / totalWindowMinutes
+                Box(
+                    modifier = Modifier
+                        .absoluteOffset(x = labelWidth, y = h * topFrac)
+                        .width(contentWidth * 0.47f)
+                        .height((h * heightFrac).coerceAtLeast(14.dp))
+                        .padding(end = 2.dp)
+                        .clip(RoundedCornerShape(3.dp))
+                        .background(MaterialTheme.colorScheme.errorContainer)
+                        .padding(horizontal = 3.dp, vertical = 1.dp)
+                ) {
+                    Text(
+                        event.title,
+                        style = MaterialTheme.typography.labelSmall,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        color = MaterialTheme.colorScheme.onErrorContainer,
+                    )
+                }
+            }
+        }
+
+        // Scheduled tasks (primary container color, right half of content area)
+        tasks.filter { it.scheduledAt != null }.forEach { task ->
+            val s = task.scheduledAt!!
+            if (s >= windowStartInstant && s < windowEndInstant) {
+                val topFrac = Duration.between(windowStartInstant, s).toMinutes().toFloat() / totalWindowMinutes
+                Box(
+                    modifier = Modifier
+                        .absoluteOffset(x = labelWidth + contentWidth * 0.49f, y = h * topFrac)
+                        .width(contentWidth * 0.47f)
+                        .height(14.dp)
+                        .padding(start = 2.dp)
+                        .clip(RoundedCornerShape(3.dp))
+                        .background(MaterialTheme.colorScheme.primaryContainer)
+                        .padding(horizontal = 3.dp, vertical = 1.dp)
+                ) {
+                    Text(
+                        task.title,
+                        style = MaterialTheme.typography.labelSmall,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer,
+                    )
+                }
+            }
+        }
+
+        // Selected time indicator (bright primary line)
+        selectedTime?.let { st ->
+            if (st >= windowStartInstant && st < windowEndInstant) {
+                val topFrac = Duration.between(windowStartInstant, st).toMinutes().toFloat() / totalWindowMinutes
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .absoluteOffset(y = h * topFrac)
+                        .height(2.dp)
+                        .background(MaterialTheme.colorScheme.primary)
+                )
+                Text(
+                    slotFormatter.format(st),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.absoluteOffset(x = labelWidth, y = h * topFrac - 14.dp),
+                )
+            }
+        }
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 private fun TaskFormSheet(
     form: TaskFormState,
     isEditing: Boolean,
     freeSlots: List<FreeSlot>,
+    scheduledHabits: List<HabitDayItem>,
+    tasks: List<Task>,
+    calendarEvents: List<CalendarEvent>,
+    date: LocalDate,
     onTitleChange: (String) -> Unit,
     onDescriptionChange: (String) -> Unit,
     onTriggerInputChange: (String) -> Unit,
     onAddTrigger: () -> Unit,
     onRemoveTrigger: (String) -> Unit,
     onPickSlot: (FreeSlot?) -> Unit,
+    onPickTime: (Instant) -> Unit,
+    onIsChoreChange: (Boolean) -> Unit,
     onSave: () -> Unit,
     onDismiss: () -> Unit,
 ) {
-    Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp).fillMaxWidth()) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+    ) {
         Text(
             if (isEditing) "Edit Task" else "New Task",
             style = MaterialTheme.typography.titleLarge,
@@ -467,10 +636,42 @@ private fun TaskFormSheet(
             minLines = 2,
         )
 
+        // Vertical day timeline
+        Spacer(Modifier.height(12.dp))
+        Text(
+            "Day Timeline — tap to schedule",
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Spacer(Modifier.height(4.dp))
+        VerticalDayTimeline(
+            date = date,
+            events = calendarEvents,
+            tasks = tasks,
+            selectedTime = form.scheduledAt,
+            onTimeSelected = onPickTime,
+        )
+        if (form.scheduledAt != null) {
+            Spacer(Modifier.height(4.dp))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Filled.Schedule, null, modifier = Modifier.size(14.dp),
+                    tint = MaterialTheme.colorScheme.primary)
+                Spacer(Modifier.width(4.dp))
+                Text(
+                    "Scheduled at ${slotFormatter.format(form.scheduledAt)}",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+                Spacer(Modifier.width(8.dp))
+                TextButton(onClick = { onPickSlot(null) }) { Text("Clear") }
+            }
+        }
+
+        // Free slot chips (alternative to tapping timeline)
         if (freeSlots.isNotEmpty()) {
-            Spacer(Modifier.height(12.dp))
+            Spacer(Modifier.height(8.dp))
             Text(
-                "Available time slots",
+                "Free slots",
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -482,7 +683,7 @@ private fun TaskFormSheet(
                     onClick = { onPickSlot(noSlot) },
                     label = { Text("No time") },
                 )
-                freeSlots.take(6).forEach { slot ->
+                freeSlots.take(5).forEach { slot ->
                     val label = "${slotFormatter.format(slot.start)} (${slot.durationMinutes}m)"
                     FilterChip(
                         selected = form.scheduledAt == slot.start,
@@ -490,6 +691,67 @@ private fun TaskFormSheet(
                         label = { Text(label) },
                     )
                 }
+            }
+        }
+
+        // Today's habits — show related ones highlighted
+        if (scheduledHabits.isNotEmpty()) {
+            Spacer(Modifier.height(12.dp))
+            Text(
+                "Today's Habits",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Spacer(Modifier.height(4.dp))
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                scheduledHabits.forEach { habit ->
+                    val isRelated = form.triggers.isNotEmpty() && habit.triggers.any { ht ->
+                        form.triggers.any { ft -> ht.contains(ft, ignoreCase = true) || ft.contains(ht, ignoreCase = true) }
+                    }
+                    FilterChip(
+                        selected = isRelated,
+                        onClick = {},
+                        label = { Text(habit.title, style = MaterialTheme.typography.labelSmall) },
+                        leadingIcon = if (habit.completedToday) {
+                            { Icon(Icons.Filled.Check, null, modifier = Modifier.size(14.dp)) }
+                        } else null,
+                    )
+                }
+            }
+
+            // Chore toggle: shown for new tasks when no habits match the current triggers
+            val hasRelatedHabit = scheduledHabits.any { habit ->
+                form.triggers.isNotEmpty() && habit.triggers.any { ht ->
+                    form.triggers.any { ft -> ht.contains(ft, ignoreCase = true) || ft.contains(ht, ignoreCase = true) }
+                }
+            }
+            if (!isEditing && !hasRelatedHabit) {
+                Spacer(Modifier.height(8.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("Mark as Chore", style = MaterialTheme.typography.bodyMedium)
+                        Text(
+                            "Routine sustaining task (cleaning, eating, maintenance)",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    Switch(checked = form.isChore, onCheckedChange = onIsChoreChange)
+                }
+            }
+        } else if (!isEditing) {
+            // No habits today — always offer chore option
+            Spacer(Modifier.height(12.dp))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text("Mark as Chore", style = MaterialTheme.typography.bodyMedium)
+                    Text(
+                        "Routine sustaining task (cleaning, eating, maintenance)",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                Switch(checked = form.isChore, onCheckedChange = onIsChoreChange)
             }
         }
 

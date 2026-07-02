@@ -41,6 +41,7 @@ data class TaskFormState(
     val triggers: List<String> = emptyList(),
     val triggerInput: String = "",
     val scheduledAt: Instant? = null,
+    val isChore: Boolean = false,
 )
 
 data class TaskUiState(
@@ -150,6 +151,12 @@ class TaskViewModel @Inject constructor(
         _formAndSheet.update { it.copy(form = it.form.copy(scheduledAt = slot?.start)) }
     }
 
+    fun pickScheduledTime(instant: java.time.Instant) {
+        _formAndSheet.update { it.copy(form = it.form.copy(scheduledAt = instant)) }
+    }
+
+    fun updateIsChore(v: Boolean) { _formAndSheet.update { it.copy(form = it.form.copy(isChore = v)) } }
+
     fun addTrigger() {
         val input = _formAndSheet.value.form.triggerInput.trim().lowercase()
         if (input.isBlank()) return
@@ -176,6 +183,7 @@ class TaskViewModel @Inject constructor(
             createdAt = existing?.createdAt ?: Instant.now(),
             triggers = form.triggers,
             scheduledAt = form.scheduledAt,
+            isChore = form.isChore,
         )
         viewModelScope.launch { taskRepository.upsertTask(task) }
         _formAndSheet.update { it.copy(showSheet = false) }
