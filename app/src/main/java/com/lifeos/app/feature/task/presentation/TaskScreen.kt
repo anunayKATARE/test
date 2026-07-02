@@ -759,14 +759,14 @@ private fun TaskFormSheet(
             OutlinedTextField(
                 value = form.startTimeText,
                 onValueChange = onStartTimeChange,
-                label = { Text("Start (HH:mm)") },
+                label = { Text("Start time") },
+                placeholder = { Text("HH:MM") },
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(
                     keyboardType = KeyboardType.Number,
-                    imeAction = ImeAction.Done,
+                    imeAction = ImeAction.Next,
                 ),
-                keyboardActions = KeyboardActions(onDone = {
-                    focusManager.clearFocus()
+                keyboardActions = KeyboardActions(onNext = {
                     onStartTimeDone()
                 }),
                 modifier = Modifier.weight(1f),
@@ -774,7 +774,8 @@ private fun TaskFormSheet(
             OutlinedTextField(
                 value = form.endTimeText,
                 onValueChange = onEndTimeChange,
-                label = { Text("End (HH:mm)") },
+                label = { Text("End time") },
+                placeholder = { Text("HH:MM") },
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(
                     keyboardType = KeyboardType.Number,
@@ -994,7 +995,8 @@ private fun QuickPlanSheet(
                     OutlinedTextField(
                         value = times[task.id] ?: "",
                         onValueChange = { onTimeChange(task.id, it) },
-                        label = { Text("HH:mm") },
+                        label = { Text("Time") },
+                        placeholder = { Text("HH:MM") },
                         singleLine = true,
                         keyboardOptions = KeyboardOptions(
                             keyboardType = KeyboardType.Number,

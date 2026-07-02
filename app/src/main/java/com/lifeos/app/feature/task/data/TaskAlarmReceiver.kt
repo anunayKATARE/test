@@ -30,17 +30,21 @@ class TaskAlarmReceiver : BroadcastReceiver() {
         val title = intent.getStringExtra(EXTRA_TITLE) ?: return
         val desc = intent.getStringExtra(EXTRA_DESC) ?: ""
 
+        val bodyText = desc.ifBlank { "Time to start your task!" }
         val pending = goAsync()
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                val ep = EntryPointAccessors.fromApplication(
-                    context.applicationContext,
-                    AlarmEntryPoint::class.java,
-                )
-                val profile = ep.notificationPrefsRepository().observeSoundProfile().first()
-                val bodyText = desc.ifBlank { "Time to start your task!" }
+                val channelId = try {
+                    val ep = EntryPointAccessors.fromApplication(
+                        context.applicationContext,
+                        AlarmEntryPoint::class.java,
+                    )
+                    ep.notificationPrefsRepository().observeSoundProfile().first().channelId
+                } catch (_: Exception) {
+                    CHANNEL_ID
+                }
 
-                val notification = NotificationCompat.Builder(context, profile.channelId)
+                val notification = NotificationCompat.Builder(context, channelId)
                     .setSmallIcon(R.drawable.ic_notification)
                     .setContentTitle(title)
                     .setContentText(bodyText)

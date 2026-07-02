@@ -188,29 +188,45 @@ class TaskViewModel @Inject constructor(
     }
 
     fun updateStartTimeText(v: String) {
-        _formAndSheet.update { it.copy(form = it.form.copy(startTimeText = v)) }
+        _formAndSheet.update { it.copy(form = it.form.copy(startTimeText = autoFormatTime(v))) }
     }
 
     fun updateEndTimeText(v: String) {
-        _formAndSheet.update { it.copy(form = it.form.copy(endTimeText = v)) }
+        _formAndSheet.update { it.copy(form = it.form.copy(endTimeText = autoFormatTime(v))) }
     }
 
     fun applyStartTimeText() {
         val form = _formAndSheet.value.form
-        try {
-            val lt = LocalTime.parse(form.startTimeText, HHmm)
-            val instant = lt.atDate(form.date).atZone(ZoneId.systemDefault()).toInstant()
+        parseTime(form.startTimeText, form.date)?.let { instant ->
             _formAndSheet.update { it.copy(form = it.form.copy(scheduledAt = instant)) }
-        } catch (_: DateTimeParseException) { /* leave unchanged on invalid input */ }
+        }
     }
 
     fun applyEndTimeText() {
         val form = _formAndSheet.value.form
-        try {
-            val lt = LocalTime.parse(form.endTimeText, HHmm)
-            val instant = lt.atDate(form.date).atZone(ZoneId.systemDefault()).toInstant()
+        parseTime(form.endTimeText, form.date)?.let { instant ->
             _formAndSheet.update { it.copy(form = it.form.copy(scheduledEndAt = instant)) }
-        } catch (_: DateTimeParseException) { /* leave unchanged on invalid input */ }
+        }
+    }
+
+    // Strips non-digits and auto-inserts a colon after the 2nd digit so users
+    // only need to type digits — e.g. "1430" becomes "14:30".
+    private fun autoFormatTime(input: String): String {
+        val digits = input.filter { it.isDigit() }.take(4)
+        return if (digits.length >= 3) "${digits.take(2)}:${digits.drop(2)}" else digits
+    }
+
+    // Parses "HH:mm", "HHmm" (4 digits), or "Hmm" (3 digits → 0H:mm).
+    private fun parseTime(text: String, date: LocalDate): Instant? {
+        val digits = text.filter { it.isDigit() }
+        val normalized = when (digits.length) {
+            3 -> "0${digits[0]}:${digits.drop(1)}"
+            4 -> "${digits.take(2)}:${digits.drop(2)}"
+            else -> text
+        }
+        return try {
+            LocalTime.parse(normalized, HHmm).atDate(date).atZone(ZoneId.systemDefault()).toInstant()
+        } catch (_: DateTimeParseException) { null }
     }
 
     fun addTrigger() {
@@ -269,23 +285,20 @@ class TaskViewModel @Inject constructor(
     }
 
     fun updateQuickPlanTime(taskId: String, time: String) {
-        _formAndSheet.update { it.copy(quickPlanTimes = it.quickPlanTimes + (taskId to time)) }
+        _formAndSheet.update { it.copy(quickPlanTimes = it.quickPlanTimes + (taskId to autoFormatTime(time))) }
     }
 
     fun confirmQuickPlan() {
         val state = _formAndSheet.value
-        val zone = ZoneId.systemDefault()
         val today = LocalDate.now()
         viewModelScope.launch {
             state.unscheduledUpcoming.forEach { task ->
                 val timeText = state.quickPlanTimes[task.id]?.trim() ?: return@forEach
                 if (timeText.isBlank()) return@forEach
-                try {
-                    val lt = LocalTime.parse(timeText, HHmm)
-                    val taskDate = if (task.date >= today) task.date else today
-                    val instant = lt.atDate(taskDate).atZone(zone).toInstant()
+                val taskDate = if (task.date >= today) task.date else today
+                parseTime(timeText, taskDate)?.let { instant ->
                     taskRepository.upsertTask(task.copy(scheduledAt = instant))
-                } catch (_: DateTimeParseException) { /* skip tasks with invalid time */ }
+                }
             }
             _formAndSheet.update { it.copy(showQuickPlan = false, quickPlanTimes = emptyMap()) }
         }
