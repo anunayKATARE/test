@@ -33,4 +33,10 @@ interface TimeLogDao {
 
     @Query("DELETE FROM time_logs WHERE profileId = :profileId")
     suspend fun deleteAllByProfile(profileId: String)
+
+    @Query("SELECT * FROM time_logs")
+    suspend fun getAllForBackup(): List<TimeLogEntity>
+
+    @Query("DELETE FROM time_logs")
+    suspend fun deleteAllForRestore()
 }

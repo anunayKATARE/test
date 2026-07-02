@@ -71,4 +71,10 @@ interface TaskDao {
 
     @Query("SELECT * FROM tasks WHERE scheduledAt IS NOT NULL AND scheduledAt > :nowMillis")
     suspend fun getFutureScheduledTasks(nowMillis: Long): List<TaskEntity>
+
+    @Query("SELECT * FROM tasks")
+    suspend fun getAllForBackup(): List<TaskEntity>
+
+    @Query("DELETE FROM tasks")
+    suspend fun deleteAllForRestore()
 }

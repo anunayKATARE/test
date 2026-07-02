@@ -74,4 +74,16 @@ interface HabitDao {
 
     @Query("DELETE FROM habit_completions WHERE profileId IS NULL")
     suspend fun deleteAllRealCompletions()
+
+    @Query("SELECT * FROM habits")
+    suspend fun getAllForBackupHabits(): List<HabitEntity>
+
+    @Query("DELETE FROM habits")
+    suspend fun deleteAllForRestoreHabits()
+
+    @Query("SELECT * FROM habit_completions")
+    suspend fun getAllForBackupCompletions(): List<HabitCompletionEntity>
+
+    @Query("DELETE FROM habit_completions")
+    suspend fun deleteAllForRestoreCompletions()
 }

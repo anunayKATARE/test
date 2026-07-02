@@ -38,4 +38,10 @@ interface GoalDao {
 
     @Query("DELETE FROM goals WHERE profileId IS NULL")
     suspend fun deleteAllReal()
+
+    @Query("SELECT * FROM goals")
+    suspend fun getAllForBackup(): List<GoalEntity>
+
+    @Query("DELETE FROM goals")
+    suspend fun deleteAllForRestore()
 }

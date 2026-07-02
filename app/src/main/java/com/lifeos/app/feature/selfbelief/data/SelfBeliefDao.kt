@@ -30,4 +30,10 @@ interface SelfBeliefDao {
 
     @Query("DELETE FROM self_belief_reflections WHERE profileId IS NULL")
     suspend fun deleteAllReal()
+
+    @Query("SELECT * FROM self_belief_reflections")
+    suspend fun getAllForBackup(): List<SelfBeliefEntity>
+
+    @Query("DELETE FROM self_belief_reflections")
+    suspend fun deleteAllForRestore()
 }

@@ -1,12 +1,26 @@
 package com.lifeos.app.core.navigation
 
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AutoStories
+import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.Book
+import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.CloudUpload
+import androidx.compose.material.icons.filled.FitnessCenter
 import androidx.compose.material.icons.filled.Flag
+import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Lightbulb
 import androidx.compose.material.icons.filled.Mood
 import androidx.compose.material.icons.filled.MoreHoriz
+import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.SelfImprovement
+import androidx.compose.material.icons.filled.TaskAlt
+import androidx.compose.material.icons.filled.Timer
+import androidx.compose.material.icons.filled.WbSunny
 import androidx.compose.ui.graphics.vector.ImageVector
 import java.time.LocalDate
 
@@ -48,21 +62,43 @@ val bottomNavItems = listOf(
     BottomNavItem(LifeOSRoutes.MORE_GRAPH, "More", Icons.Filled.MoreHoriz),
 )
 
-data class MoreMenuItem(val route: String, val label: String)
+data class MoreMenuItem(val route: String, val label: String, val icon: ImageVector)
 
-val moreMenuItems = listOf(
-    MoreMenuItem(LifeOSRoutes.TASKS, "Tasks"),
-    MoreMenuItem(LifeOSRoutes.PLAN_DAY, "Plan Your Day"),
-    MoreMenuItem(LifeOSRoutes.TIME_LOG, "Time Log"),
-    MoreMenuItem(LifeOSRoutes.CALENDAR, "Calendar"),
-    MoreMenuItem(LifeOSRoutes.CATEGORIES, "Categories"),
-    MoreMenuItem(LifeOSRoutes.MENTAL_TOUGHNESS, "Mental Toughness"),
-    MoreMenuItem(LifeOSRoutes.SELF_BELIEF, "Self-Belief"),
-    MoreMenuItem(LifeOSRoutes.REFLECTION, "Reflection Library"),
-    MoreMenuItem(LifeOSRoutes.PROBLEM_SOLVER, "Problem Solver"),
-    MoreMenuItem(LifeOSRoutes.ANALYTICS, "Analytics"),
-    MoreMenuItem(LifeOSRoutes.SEARCH, "Search"),
-    MoreMenuItem(LifeOSRoutes.DEMO_MODE, "Profiles"),
-    MoreMenuItem(LifeOSRoutes.BACKUP, "Backup & Restore"),
-    MoreMenuItem(LifeOSRoutes.NOTIFICATION_SETTINGS, "Notification Settings"),
+data class MoreMenuSection(val title: String, val items: List<MoreMenuItem>)
+
+val moreMenuSections = listOf(
+    MoreMenuSection(
+        title = "Plan & Do",
+        items = listOf(
+            MoreMenuItem(LifeOSRoutes.TASKS, "Tasks", Icons.Filled.TaskAlt),
+            MoreMenuItem(LifeOSRoutes.PLAN_DAY, "Plan Your Day", Icons.Filled.WbSunny),
+            MoreMenuItem(LifeOSRoutes.CALENDAR, "Calendar", Icons.Filled.CalendarMonth),
+            MoreMenuItem(LifeOSRoutes.TIME_LOG, "Time Log", Icons.Filled.Timer),
+        ),
+    ),
+    MoreMenuSection(
+        title = "Grow",
+        items = listOf(
+            MoreMenuItem(LifeOSRoutes.MENTAL_TOUGHNESS, "Mental Toughness", Icons.Filled.FitnessCenter),
+            MoreMenuItem(LifeOSRoutes.SELF_BELIEF, "Self-Belief", Icons.Filled.SelfImprovement),
+            MoreMenuItem(LifeOSRoutes.REFLECTION, "Reflections", Icons.Filled.AutoStories),
+            MoreMenuItem(LifeOSRoutes.PROBLEM_SOLVER, "Problem Solver", Icons.Filled.Lightbulb),
+        ),
+    ),
+    MoreMenuSection(
+        title = "Review",
+        items = listOf(
+            MoreMenuItem(LifeOSRoutes.ANALYTICS, "Analytics", Icons.Filled.BarChart),
+            MoreMenuItem(LifeOSRoutes.SEARCH, "Search", Icons.Filled.Search),
+            MoreMenuItem(LifeOSRoutes.CATEGORIES, "Categories", Icons.Filled.Folder),
+        ),
+    ),
+    MoreMenuSection(
+        title = "Settings",
+        items = listOf(
+            MoreMenuItem(LifeOSRoutes.DEMO_MODE, "Profiles", Icons.Filled.Person),
+            MoreMenuItem(LifeOSRoutes.NOTIFICATION_SETTINGS, "Notifications", Icons.Filled.Notifications),
+            MoreMenuItem(LifeOSRoutes.BACKUP, "Backup & Restore", Icons.Filled.CloudUpload),
+        ),
+    ),
 )

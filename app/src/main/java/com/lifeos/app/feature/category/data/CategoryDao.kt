@@ -43,4 +43,10 @@ interface CategoryDao {
 
     @Query("DELETE FROM categories WHERE profileId IS NULL")
     suspend fun deleteAllReal()
+
+    @Query("SELECT * FROM categories")
+    suspend fun getAllForBackup(): List<CategoryEntity>
+
+    @Query("DELETE FROM categories")
+    suspend fun deleteAllForRestore()
 }

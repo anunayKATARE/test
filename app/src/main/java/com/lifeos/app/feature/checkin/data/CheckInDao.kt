@@ -30,4 +30,16 @@ interface CheckInDao {
 
     @Query("DELETE FROM check_in_sessions WHERE profileId = :profileId")
     suspend fun deleteAllByProfile(profileId: String)
+
+    @Query("SELECT * FROM check_in_sessions")
+    suspend fun getAllForBackupSessions(): List<CheckInSessionEntity>
+
+    @Query("DELETE FROM check_in_sessions")
+    suspend fun deleteAllForRestoreSessions()
+
+    @Query("SELECT * FROM check_in_commitments")
+    suspend fun getAllForBackupCommitments(): List<CheckInCommitmentEntity>
+
+    @Query("DELETE FROM check_in_commitments")
+    suspend fun deleteAllForRestoreCommitments()
 }

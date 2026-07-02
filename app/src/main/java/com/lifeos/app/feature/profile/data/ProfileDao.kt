@@ -21,4 +21,10 @@ interface ProfileDao {
 
     @Query("UPDATE profiles SET name = :name WHERE id = :id")
     suspend fun updateName(id: String, name: String)
+
+    @Query("SELECT * FROM profiles")
+    suspend fun getAllForBackup(): List<ProfileEntity>
+
+    @Query("DELETE FROM profiles")
+    suspend fun deleteAllForRestore()
 }

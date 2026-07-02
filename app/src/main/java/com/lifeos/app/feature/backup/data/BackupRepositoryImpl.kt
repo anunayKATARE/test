@@ -1,8 +1,14 @@
 package com.lifeos.app.feature.backup.data
 
+import androidx.room.withTransaction
+import com.lifeos.app.core.database.AppDatabase
+import com.lifeos.app.core.demo.DemoModeRepository
 import com.lifeos.app.feature.backup.domain.BackupRepository
 import com.lifeos.app.feature.category.data.CategoryDao
 import com.lifeos.app.feature.category.data.CategoryEntity
+import com.lifeos.app.feature.checkin.data.CheckInCommitmentEntity
+import com.lifeos.app.feature.checkin.data.CheckInDao
+import com.lifeos.app.feature.checkin.data.CheckInSessionEntity
 import com.lifeos.app.feature.goal.data.GoalDao
 import com.lifeos.app.feature.goal.data.GoalEntity
 import com.lifeos.app.feature.goal.domain.GoalHorizon
@@ -24,9 +30,13 @@ import com.lifeos.app.feature.mentaltoughness.domain.MentalToughnessType
 import com.lifeos.app.feature.mood.data.MoodDao
 import com.lifeos.app.feature.mood.data.MoodEntryEntity
 import com.lifeos.app.feature.mood.domain.Emotion
+import com.lifeos.app.feature.plan.data.DayPlanDao
+import com.lifeos.app.feature.plan.data.DayPlanEntity
 import com.lifeos.app.feature.problemsolver.data.ProblemDao
 import com.lifeos.app.feature.problemsolver.data.ProblemEntity
 import com.lifeos.app.feature.problemsolver.domain.ProblemStatus
+import com.lifeos.app.feature.profile.data.ProfileDao
+import com.lifeos.app.feature.profile.data.ProfileEntity
 import com.lifeos.app.feature.reflection.data.ReflectionDao
 import com.lifeos.app.feature.reflection.data.ReflectionEntity
 import com.lifeos.app.feature.reflection.domain.ReflectionTemplateType
@@ -34,7 +44,8 @@ import com.lifeos.app.feature.selfbelief.data.SelfBeliefDao
 import com.lifeos.app.feature.selfbelief.data.SelfBeliefEntity
 import com.lifeos.app.feature.task.data.TaskDao
 import com.lifeos.app.feature.task.data.TaskEntity
-import com.lifeos.app.core.demo.DemoModeRepository
+import com.lifeos.app.feature.timelog.data.TimeLogDao
+import com.lifeos.app.feature.timelog.data.TimeLogEntity
 import java.time.Instant
 import java.time.LocalDate
 import javax.inject.Inject
@@ -42,9 +53,10 @@ import kotlinx.coroutines.flow.first
 import org.json.JSONArray
 import org.json.JSONObject
 
-private const val SCHEMA_VERSION = 1
+private const val SCHEMA_VERSION = 2
 
 class BackupRepositoryImpl @Inject constructor(
+    private val database: AppDatabase,
     private val categoryDao: CategoryDao,
     private val journalDao: JournalDao,
     private val moodDao: MoodDao,
@@ -56,85 +68,156 @@ class BackupRepositoryImpl @Inject constructor(
     private val problemDao: ProblemDao,
     private val taskDao: TaskDao,
     private val inspirationDao: InspirationDao,
+    private val checkInDao: CheckInDao,
+    private val profileDao: ProfileDao,
+    private val dayPlanDao: DayPlanDao,
+    private val timeLogDao: TimeLogDao,
     private val demoModeRepository: DemoModeRepository,
 ) : BackupRepository {
 
     override suspend fun exportSnapshot(): String {
+        // Full snapshot: every row of every table, all profiles included,
+        // with each row's profileId preserved
         val root = JSONObject()
         root.put("schemaVersion", SCHEMA_VERSION)
         root.put("exportedAt", Instant.now().toEpochMilli())
-        root.put("categories", JSONArray(categoryDao.getAllReal().map { it.toJson() }))
-        root.put("journalEntries", JSONArray(journalDao.getAllReal().map { it.toJson() }))
-        root.put("moodEntries", JSONArray(moodDao.getAllReal().map { it.toJson() }))
-        root.put("habits", JSONArray(habitDao.getAllRealHabits().map { it.toJson() }))
-        root.put("habitCompletions", JSONArray(habitDao.getAllRealCompletions().map { it.toJson() }))
-        root.put("goals", JSONArray(goalDao.getAllReal().map { it.toJson() }))
-        root.put("mentalToughnessEntries", JSONArray(mentalToughnessDao.getAllReal().map { it.toJson() }))
-        root.put("selfBeliefReflections", JSONArray(selfBeliefDao.getAllReal().map { it.toJson() }))
-        root.put("reflectionEntries", JSONArray(reflectionDao.getAllReal().map { it.toJson() }))
-        root.put("problems", JSONArray(problemDao.getAllReal().map { it.toJson() }))
-        root.put("tasks", JSONArray(taskDao.getAllReal().map { it.toJson() }))
-        root.put("inspirationItems", JSONArray(inspirationDao.getAllReal().map { it.toJson() }))
+        root.put("profiles", JSONArray(profileDao.getAllForBackup().map { it.toJson() }))
+        root.put("categories", JSONArray(categoryDao.getAllForBackup().map { it.toJson() }))
+        root.put("journalEntries", JSONArray(journalDao.getAllForBackup().map { it.toJson() }))
+        root.put("moodEntries", JSONArray(moodDao.getAllForBackup().map { it.toJson() }))
+        root.put("habits", JSONArray(habitDao.getAllForBackupHabits().map { it.toJson() }))
+        root.put("habitCompletions", JSONArray(habitDao.getAllForBackupCompletions().map { it.toJson() }))
+        root.put("goals", JSONArray(goalDao.getAllForBackup().map { it.toJson() }))
+        root.put("mentalToughnessEntries", JSONArray(mentalToughnessDao.getAllForBackup().map { it.toJson() }))
+        root.put("selfBeliefReflections", JSONArray(selfBeliefDao.getAllForBackup().map { it.toJson() }))
+        root.put("reflectionEntries", JSONArray(reflectionDao.getAllForBackup().map { it.toJson() }))
+        root.put("problems", JSONArray(problemDao.getAllForBackup().map { it.toJson() }))
+        root.put("tasks", JSONArray(taskDao.getAllForBackup().map { it.toJson() }))
+        root.put("inspirationItems", JSONArray(inspirationDao.getAllForBackup().map { it.toJson() }))
+        root.put("checkInSessions", JSONArray(checkInDao.getAllForBackupSessions().map { it.toJson() }))
+        root.put("checkInCommitments", JSONArray(checkInDao.getAllForBackupCommitments().map { it.toJson() }))
+        root.put("dayPlans", JSONArray(dayPlanDao.getAllForBackup().map { it.toJson() }))
+        root.put("timeLogs", JSONArray(timeLogDao.getAllForBackup().map { it.toJson() }))
         return root.toString()
     }
 
     override suspend fun importSnapshot(json: String) {
-        // All imported rows must carry the current profile ID or they are invisible to every
-        // repository query (which filters by profileId == activeProfile.id).
-        val profileId = demoModeRepository.activeProfile.first()?.id
         val root = JSONObject(json)
+        if (root.optInt("schemaVersion", 1) >= 2) importV2(root) else importV1(root)
+    }
 
-        categoryDao.deleteAllReal()
-        root.getJSONArray("categories").toObjects()
-            .forEach { categoryDao.upsert(it.toCategoryEntity().copy(profileId = profileId)) }
+    private suspend fun importV2(root: JSONObject) {
+        // Parse the entire file FIRST — nothing is deleted unless every row parses
+        val profiles = root.objects("profiles").map { it.toProfileEntity() }
+        val categories = root.objects("categories").map { it.toCategoryEntity() }
+        val journalEntries = root.objects("journalEntries").map { it.toJournalEntryEntity() }
+        val moodEntries = root.objects("moodEntries").map { it.toMoodEntryEntity() }
+        val habits = root.objects("habits").map { it.toHabitEntity() }
+        val habitCompletions = root.objects("habitCompletions").map { it.toHabitCompletionEntity() }
+        val goals = root.objects("goals").map { it.toGoalEntity() }
+        val mentalToughness = root.objects("mentalToughnessEntries").map { it.toMentalToughnessEntity() }
+        val selfBeliefs = root.objects("selfBeliefReflections").map { it.toSelfBeliefEntity() }
+        val reflections = root.objects("reflectionEntries").map { it.toReflectionEntity() }
+        val problems = root.objects("problems").map { it.toProblemEntity() }
+        val tasks = root.objects("tasks").map { it.toTaskEntity() }
+        val inspirations = root.objects("inspirationItems").map { it.toInspirationEntity() }
+        val checkInSessions = root.objects("checkInSessions").map { it.toCheckInSessionEntity() }
+        val checkInCommitments = root.objects("checkInCommitments").map { it.toCheckInCommitmentEntity() }
+        val dayPlans = root.objects("dayPlans").map { it.toDayPlanEntity() }
+        val timeLogs = root.objects("timeLogs").map { it.toTimeLogEntity() }
 
-        journalDao.deleteAllReal()
-        root.getJSONArray("journalEntries").toObjects()
-            .forEach { journalDao.upsert(it.toJournalEntryEntity().copy(profileId = profileId)) }
+        database.withTransaction {
+            profileDao.deleteAllForRestore()
+            categoryDao.deleteAllForRestore()
+            journalDao.deleteAllForRestore()
+            moodDao.deleteAllForRestore()
+            habitDao.deleteAllForRestoreHabits()
+            habitDao.deleteAllForRestoreCompletions()
+            goalDao.deleteAllForRestore()
+            mentalToughnessDao.deleteAllForRestore()
+            selfBeliefDao.deleteAllForRestore()
+            reflectionDao.deleteAllForRestore()
+            problemDao.deleteAllForRestore()
+            taskDao.deleteAllForRestore()
+            inspirationDao.deleteAllForRestore()
+            checkInDao.deleteAllForRestoreSessions()
+            checkInDao.deleteAllForRestoreCommitments()
+            dayPlanDao.deleteAllForRestore()
+            timeLogDao.deleteAllForRestore()
 
-        moodDao.deleteAllReal()
-        root.getJSONArray("moodEntries").toObjects()
-            .forEach { moodDao.upsert(it.toMoodEntryEntity().copy(profileId = profileId)) }
+            profiles.forEach { profileDao.upsert(it) }
+            categories.forEach { categoryDao.upsert(it) }
+            journalEntries.forEach { journalDao.upsert(it) }
+            moodEntries.forEach { moodDao.upsert(it) }
+            habits.forEach { habitDao.upsertHabit(it) }
+            habitCompletions.forEach { habitDao.upsertCompletion(it) }
+            goals.forEach { goalDao.upsert(it) }
+            mentalToughness.forEach { mentalToughnessDao.upsert(it) }
+            selfBeliefs.forEach { selfBeliefDao.upsert(it) }
+            reflections.forEach { reflectionDao.upsert(it) }
+            problems.forEach { problemDao.upsert(it) }
+            tasks.forEach { taskDao.upsertTask(it) }
+            inspirations.forEach { inspirationDao.upsert(it) }
+            checkInSessions.forEach { checkInDao.upsertSession(it) }
+            if (checkInCommitments.isNotEmpty()) checkInDao.upsertCommitments(checkInCommitments)
+            dayPlans.forEach { dayPlanDao.upsert(it) }
+            timeLogs.forEach { timeLogDao.upsert(it) }
+        }
 
-        habitDao.deleteAllRealHabits()
-        root.getJSONArray("habits").toObjects()
-            .forEach { habitDao.upsertHabit(it.toHabitEntity().copy(profileId = profileId)) }
+        // Reset to the default profile so restored "My Data" rows are immediately
+        // visible even when the backup came from another device
+        demoModeRepository.setActiveProfile(null)
+    }
 
-        habitDao.deleteAllRealCompletions()
-        root.getJSONArray("habitCompletions").toObjects()
-            .forEach { habitDao.upsertCompletion(it.toHabitCompletionEntity().copy(profileId = profileId)) }
+    // Legacy (schema v1) files only ever contained profile-less rows; restore them
+    // into the currently active profile like the original implementation did
+    private suspend fun importV1(root: JSONObject) {
+        val profileId = demoModeRepository.activeProfile.first()?.id
+        database.withTransaction {
+            categoryDao.deleteAllReal()
+            root.objects("categories").forEach { categoryDao.upsert(it.toCategoryEntity().copy(profileId = profileId)) }
 
-        goalDao.deleteAllReal()
-        root.getJSONArray("goals").toObjects()
-            .forEach { goalDao.upsert(it.toGoalEntity().copy(profileId = profileId)) }
+            journalDao.deleteAllReal()
+            root.objects("journalEntries").forEach { journalDao.upsert(it.toJournalEntryEntity().copy(profileId = profileId)) }
 
-        mentalToughnessDao.deleteAllReal()
-        root.getJSONArray("mentalToughnessEntries").toObjects()
-            .forEach { mentalToughnessDao.upsert(it.toMentalToughnessEntity().copy(profileId = profileId)) }
+            moodDao.deleteAllReal()
+            root.objects("moodEntries").forEach { moodDao.upsert(it.toMoodEntryEntity().copy(profileId = profileId)) }
 
-        selfBeliefDao.deleteAllReal()
-        root.getJSONArray("selfBeliefReflections").toObjects()
-            .forEach { selfBeliefDao.upsert(it.toSelfBeliefEntity().copy(profileId = profileId)) }
+            habitDao.deleteAllRealHabits()
+            root.objects("habits").forEach { habitDao.upsertHabit(it.toHabitEntity().copy(profileId = profileId)) }
 
-        reflectionDao.deleteAllReal()
-        root.getJSONArray("reflectionEntries").toObjects()
-            .forEach { reflectionDao.upsert(it.toReflectionEntity().copy(profileId = profileId)) }
+            habitDao.deleteAllRealCompletions()
+            root.objects("habitCompletions").forEach { habitDao.upsertCompletion(it.toHabitCompletionEntity().copy(profileId = profileId)) }
 
-        problemDao.deleteAllReal()
-        root.getJSONArray("problems").toObjects()
-            .forEach { problemDao.upsert(it.toProblemEntity().copy(profileId = profileId)) }
+            goalDao.deleteAllReal()
+            root.objects("goals").forEach { goalDao.upsert(it.toGoalEntity().copy(profileId = profileId)) }
 
-        taskDao.deleteAllReal()
-        root.getJSONArray("tasks").toObjects()
-            .forEach { taskDao.upsertTask(it.toTaskEntity().copy(profileId = profileId)) }
+            mentalToughnessDao.deleteAllReal()
+            root.objects("mentalToughnessEntries").forEach { mentalToughnessDao.upsert(it.toMentalToughnessEntity().copy(profileId = profileId)) }
 
-        inspirationDao.deleteAllReal()
-        root.getJSONArray("inspirationItems").toObjects()
-            .forEach { inspirationDao.upsert(it.toInspirationEntity().copy(profileId = profileId)) }
+            selfBeliefDao.deleteAllReal()
+            root.objects("selfBeliefReflections").forEach { selfBeliefDao.upsert(it.toSelfBeliefEntity().copy(profileId = profileId)) }
+
+            reflectionDao.deleteAllReal()
+            root.objects("reflectionEntries").forEach { reflectionDao.upsert(it.toReflectionEntity().copy(profileId = profileId)) }
+
+            problemDao.deleteAllReal()
+            root.objects("problems").forEach { problemDao.upsert(it.toProblemEntity().copy(profileId = profileId)) }
+
+            taskDao.deleteAllReal()
+            root.objects("tasks").forEach { taskDao.upsertTask(it.toTaskEntity().copy(profileId = profileId)) }
+
+            inspirationDao.deleteAllReal()
+            root.objects("inspirationItems").forEach { inspirationDao.upsert(it.toInspirationEntity().copy(profileId = profileId)) }
+        }
     }
 }
 
-private fun JSONArray.toObjects(): List<JSONObject> = (0 until length()).map { getJSONObject(it) }
+// Missing arrays are treated as empty so partial/older files never abort an import
+private fun JSONObject.objects(name: String): List<JSONObject> {
+    val arr = optJSONArray(name) ?: return emptyList()
+    return (0 until arr.length()).map { arr.getJSONObject(it) }
+}
 
 private fun JSONArray.toStringList(): List<String> = (0 until length()).map { getString(it) }
 
@@ -146,6 +229,22 @@ private fun intListJson(list: List<Int>): JSONArray = JSONArray(list)
 
 private fun JSONObject.optStringOrNull(name: String): String? = if (isNull(name)) null else optString(name)
 
+private fun ProfileEntity.toJson() = JSONObject().apply {
+    put("id", id)
+    put("name", name)
+    put("isDemo", isDemo)
+    putOpt("demoTemplate", demoTemplate)
+    put("createdAt", createdAt)
+}
+
+private fun JSONObject.toProfileEntity() = ProfileEntity(
+    id = getString("id"),
+    name = getString("name"),
+    isDemo = getBoolean("isDemo"),
+    demoTemplate = optStringOrNull("demoTemplate"),
+    createdAt = getLong("createdAt"),
+)
+
 private fun CategoryEntity.toJson() = JSONObject().apply {
     put("id", id)
     put("name", name)
@@ -156,6 +255,7 @@ private fun CategoryEntity.toJson() = JSONObject().apply {
     put("isArchived", isArchived)
     put("isHidden", isHidden)
     put("createdAt", createdAt.toEpochMilli())
+    putOpt("profileId", profileId)
 }
 
 private fun JSONObject.toCategoryEntity() = CategoryEntity(
@@ -168,7 +268,7 @@ private fun JSONObject.toCategoryEntity() = CategoryEntity(
     isArchived = getBoolean("isArchived"),
     isHidden = getBoolean("isHidden"),
     createdAt = Instant.ofEpochMilli(getLong("createdAt")),
-    profileId = null,
+    profileId = optStringOrNull("profileId"),
 )
 
 private fun JournalEntryEntity.toJson() = JSONObject().apply {
@@ -188,6 +288,7 @@ private fun JournalEntryEntity.toJson() = JSONObject().apply {
     put("voiceNoteUris", stringListJson(voiceNoteUris))
     put("createdAt", createdAt.toEpochMilli())
     put("updatedAt", updatedAt.toEpochMilli())
+    putOpt("profileId", profileId)
 }
 
 private fun JSONObject.toJournalEntryEntity() = JournalEntryEntity(
@@ -207,7 +308,7 @@ private fun JSONObject.toJournalEntryEntity() = JournalEntryEntity(
     voiceNoteUris = getJSONArray("voiceNoteUris").toStringList(),
     createdAt = Instant.ofEpochMilli(getLong("createdAt")),
     updatedAt = Instant.ofEpochMilli(getLong("updatedAt")),
-    profileId = null,
+    profileId = optStringOrNull("profileId"),
 )
 
 private fun MoodEntryEntity.toJson() = JSONObject().apply {
@@ -224,6 +325,7 @@ private fun MoodEntryEntity.toJson() = JSONObject().apply {
     put("recoveryTimeMinutes", recoveryTimeMinutes)
     put("lessonsLearned", lessonsLearned)
     put("categoryId", categoryId)
+    putOpt("profileId", profileId)
 }
 
 private fun JSONObject.toMoodEntryEntity() = MoodEntryEntity(
@@ -240,7 +342,7 @@ private fun JSONObject.toMoodEntryEntity() = MoodEntryEntity(
     recoveryTimeMinutes = if (isNull("recoveryTimeMinutes")) null else getInt("recoveryTimeMinutes"),
     lessonsLearned = getString("lessonsLearned"),
     categoryId = optStringOrNull("categoryId"),
-    profileId = null,
+    profileId = optStringOrNull("profileId"),
 )
 
 private fun HabitEntity.toJson() = JSONObject().apply {
@@ -254,6 +356,7 @@ private fun HabitEntity.toJson() = JSONObject().apply {
     put("categoryId", categoryId)
     put("isArchived", isArchived)
     put("createdAt", createdAt.toEpochMilli())
+    putOpt("profileId", profileId)
 }
 
 private fun JSONObject.toHabitEntity() = HabitEntity(
@@ -267,7 +370,7 @@ private fun JSONObject.toHabitEntity() = HabitEntity(
     categoryId = optStringOrNull("categoryId"),
     isArchived = getBoolean("isArchived"),
     createdAt = Instant.ofEpochMilli(getLong("createdAt")),
-    profileId = null,
+    profileId = optStringOrNull("profileId"),
 )
 
 private fun HabitCompletionEntity.toJson() = JSONObject().apply {
@@ -276,6 +379,7 @@ private fun HabitCompletionEntity.toJson() = JSONObject().apply {
     put("date", date.toEpochDay())
     put("completed", completed)
     put("note", note)
+    putOpt("profileId", profileId)
 }
 
 private fun JSONObject.toHabitCompletionEntity() = HabitCompletionEntity(
@@ -284,7 +388,7 @@ private fun JSONObject.toHabitCompletionEntity() = HabitCompletionEntity(
     date = LocalDate.ofEpochDay(getLong("date")),
     completed = getBoolean("completed"),
     note = getString("note"),
-    profileId = null,
+    profileId = optStringOrNull("profileId"),
 )
 
 private fun GoalEntity.toJson() = JSONObject().apply {
@@ -299,6 +403,7 @@ private fun GoalEntity.toJson() = JSONObject().apply {
     put("categoryId", categoryId)
     put("createdAt", createdAt.toEpochMilli())
     put("completedAt", completedAt?.toEpochMilli())
+    putOpt("profileId", profileId)
 }
 
 private fun JSONObject.toGoalEntity() = GoalEntity(
@@ -313,7 +418,7 @@ private fun JSONObject.toGoalEntity() = GoalEntity(
     categoryId = optStringOrNull("categoryId"),
     createdAt = Instant.ofEpochMilli(getLong("createdAt")),
     completedAt = if (isNull("completedAt")) null else Instant.ofEpochMilli(getLong("completedAt")),
-    profileId = null,
+    profileId = optStringOrNull("profileId"),
 )
 
 private fun MentalToughnessEntity.toJson() = JSONObject().apply {
@@ -326,6 +431,7 @@ private fun MentalToughnessEntity.toJson() = JSONObject().apply {
     put("emotionAfter", emotionAfter)
     put("outcome", outcome)
     put("lessonLearned", lessonLearned)
+    putOpt("profileId", profileId)
 }
 
 private fun JSONObject.toMentalToughnessEntity() = MentalToughnessEntity(
@@ -338,7 +444,7 @@ private fun JSONObject.toMentalToughnessEntity() = MentalToughnessEntity(
     emotionAfter = getString("emotionAfter"),
     outcome = getString("outcome"),
     lessonLearned = getString("lessonLearned"),
-    profileId = null,
+    profileId = optStringOrNull("profileId"),
 )
 
 private fun SelfBeliefEntity.toJson() = JSONObject().apply {
@@ -351,6 +457,7 @@ private fun SelfBeliefEntity.toJson() = JSONObject().apply {
     put("friendAdvice", friendAdvice)
     put("strengthsThatRemain", strengthsThatRemain)
     put("nextSmallAction", nextSmallAction)
+    putOpt("profileId", profileId)
 }
 
 private fun JSONObject.toSelfBeliefEntity() = SelfBeliefEntity(
@@ -363,7 +470,7 @@ private fun JSONObject.toSelfBeliefEntity() = SelfBeliefEntity(
     friendAdvice = getString("friendAdvice"),
     strengthsThatRemain = getString("strengthsThatRemain"),
     nextSmallAction = getString("nextSmallAction"),
-    profileId = null,
+    profileId = optStringOrNull("profileId"),
 )
 
 private fun ReflectionEntity.toJson() = JSONObject().apply {
@@ -373,6 +480,7 @@ private fun ReflectionEntity.toJson() = JSONObject().apply {
     put("title", title)
     put("answers", JSONObject(answers))
     put("tags", stringListJson(tags))
+    putOpt("profileId", profileId)
 }
 
 private fun JSONObject.toReflectionEntity(): ReflectionEntity {
@@ -385,7 +493,7 @@ private fun JSONObject.toReflectionEntity(): ReflectionEntity {
         title = getString("title"),
         answers = answers,
         tags = getJSONArray("tags").toStringList(),
-        profileId = null,
+        profileId = optStringOrNull("profileId"),
     )
 }
 
@@ -401,6 +509,7 @@ private fun ProblemEntity.toJson() = JSONObject().apply {
     put("notes", notes)
     put("createdAt", createdAt.toEpochMilli())
     put("updatedAt", updatedAt.toEpochMilli())
+    putOpt("profileId", profileId)
 }
 
 private fun JSONObject.toProblemEntity() = ProblemEntity(
@@ -415,7 +524,7 @@ private fun JSONObject.toProblemEntity() = ProblemEntity(
     notes = getString("notes"),
     createdAt = Instant.ofEpochMilli(getLong("createdAt")),
     updatedAt = Instant.ofEpochMilli(getLong("updatedAt")),
-    profileId = null,
+    profileId = optStringOrNull("profileId"),
 )
 
 private fun TaskEntity.toJson() = JSONObject().apply {
@@ -426,7 +535,10 @@ private fun TaskEntity.toJson() = JSONObject().apply {
     put("completed", completed)
     put("createdAt", createdAt.toEpochMilli())
     put("triggers", stringListJson(triggers))
-    if (scheduledAt != null) put("scheduledAt", scheduledAt)
+    putOpt("scheduledAt", scheduledAt)
+    putOpt("scheduledEndAt", scheduledEndAt)
+    put("isChore", isChore)
+    putOpt("profileId", profileId)
 }
 
 private fun JSONObject.toTaskEntity() = TaskEntity(
@@ -436,9 +548,11 @@ private fun JSONObject.toTaskEntity() = TaskEntity(
     date = LocalDate.ofEpochDay(getLong("date")),
     completed = getBoolean("completed"),
     createdAt = Instant.ofEpochMilli(getLong("createdAt")),
-    profileId = null,
+    profileId = optStringOrNull("profileId"),
     triggers = if (has("triggers")) getJSONArray("triggers").toStringList() else emptyList(),
     scheduledAt = if (has("scheduledAt") && !isNull("scheduledAt")) getLong("scheduledAt") else null,
+    scheduledEndAt = if (has("scheduledEndAt") && !isNull("scheduledEndAt")) getLong("scheduledEndAt") else null,
+    isChore = optBoolean("isChore", false),
 )
 
 private fun InspirationEntity.toJson() = JSONObject().apply {
@@ -449,6 +563,7 @@ private fun InspirationEntity.toJson() = JSONObject().apply {
     put("imagePath", imagePath)
     put("sortOrder", sortOrder)
     put("createdAt", createdAt.toEpochMilli())
+    putOpt("profileId", profileId)
 }
 
 private fun JSONObject.toInspirationEntity() = InspirationEntity(
@@ -459,5 +574,75 @@ private fun JSONObject.toInspirationEntity() = InspirationEntity(
     imagePath = optStringOrNull("imagePath"),
     sortOrder = getInt("sortOrder"),
     createdAt = Instant.ofEpochMilli(getLong("createdAt")),
-    profileId = null,
+    profileId = optStringOrNull("profileId"),
+)
+
+private fun CheckInSessionEntity.toJson() = JSONObject().apply {
+    put("id", id)
+    put("scheduledAt", scheduledAt)
+    putOpt("completedAt", completedAt)
+    putOpt("profileId", profileId)
+}
+
+private fun JSONObject.toCheckInSessionEntity() = CheckInSessionEntity(
+    id = getString("id"),
+    scheduledAt = getLong("scheduledAt"),
+    completedAt = if (isNull("completedAt")) null else getLong("completedAt"),
+    profileId = optStringOrNull("profileId"),
+)
+
+private fun CheckInCommitmentEntity.toJson() = JSONObject().apply {
+    put("id", id)
+    put("sessionId", sessionId)
+    put("text", text)
+    putOpt("linkedId", linkedId)
+    putOpt("linkedType", linkedType)
+    put("isCompleted", isCompleted)
+    put("sortOrder", sortOrder)
+}
+
+private fun JSONObject.toCheckInCommitmentEntity() = CheckInCommitmentEntity(
+    id = getString("id"),
+    sessionId = getString("sessionId"),
+    text = getString("text"),
+    linkedId = optStringOrNull("linkedId"),
+    linkedType = optStringOrNull("linkedType"),
+    isCompleted = getBoolean("isCompleted"),
+    sortOrder = getInt("sortOrder"),
+)
+
+private fun DayPlanEntity.toJson() = JSONObject().apply {
+    put("id", id)
+    put("forDate", forDate.toEpochDay())
+    put("plannedAt", plannedAt.toEpochMilli())
+    put("selectedTaskIds", stringListJson(selectedTaskIds))
+    put("intentions", intentions)
+    putOpt("profileId", profileId)
+}
+
+private fun JSONObject.toDayPlanEntity() = DayPlanEntity(
+    id = getString("id"),
+    forDate = LocalDate.ofEpochDay(getLong("forDate")),
+    plannedAt = Instant.ofEpochMilli(getLong("plannedAt")),
+    selectedTaskIds = getJSONArray("selectedTaskIds").toStringList(),
+    intentions = getString("intentions"),
+    profileId = optStringOrNull("profileId"),
+)
+
+private fun TimeLogEntity.toJson() = JSONObject().apply {
+    put("id", id)
+    put("startedAt", startedAt.toEpochMilli())
+    putOpt("endedAt", endedAt?.toEpochMilli())
+    putOpt("linkedTaskId", linkedTaskId)
+    putOpt("chore", chore)
+    putOpt("profileId", profileId)
+}
+
+private fun JSONObject.toTimeLogEntity() = TimeLogEntity(
+    id = getString("id"),
+    startedAt = Instant.ofEpochMilli(getLong("startedAt")),
+    endedAt = if (isNull("endedAt")) null else Instant.ofEpochMilli(getLong("endedAt")),
+    linkedTaskId = optStringOrNull("linkedTaskId"),
+    chore = optStringOrNull("chore"),
+    profileId = optStringOrNull("profileId"),
 )

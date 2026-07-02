@@ -15,4 +15,10 @@ interface DayPlanDao {
 
     @Query("DELETE FROM day_plans WHERE profileId = :profileId")
     suspend fun deleteAllByProfile(profileId: String)
+
+    @Query("SELECT * FROM day_plans")
+    suspend fun getAllForBackup(): List<DayPlanEntity>
+
+    @Query("DELETE FROM day_plans")
+    suspend fun deleteAllForRestore()
 }
