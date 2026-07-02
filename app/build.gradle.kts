@@ -14,8 +14,8 @@ android {
         applicationId = "com.lifeos.app"
         minSdk = 26
         targetSdk = 34
-        versionCode = 9
-        versionName = "0.9.0-alpha01"
+        versionCode = 10
+        versionName = "0.10.0-alpha01"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables.useSupportLibrary = true

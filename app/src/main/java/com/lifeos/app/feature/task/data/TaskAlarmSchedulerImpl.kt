@@ -24,7 +24,8 @@ class TaskAlarmSchedulerImpl @Inject constructor(
         if (at.isBefore(Instant.now())) return
         val pending = buildPendingIntent(task.id, task.title, task.description)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && !alarmManager.canScheduleExactAlarms()) {
-            alarmManager.set(AlarmManager.RTC_WAKEUP, at.toEpochMilli(), pending)
+            // Exact alarms not granted — use inexact but Doze-safe fallback
+            alarmManager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, at.toEpochMilli(), pending)
         } else {
             alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, at.toEpochMilli(), pending)
         }

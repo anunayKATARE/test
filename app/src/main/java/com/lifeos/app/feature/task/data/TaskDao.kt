@@ -68,4 +68,7 @@ interface TaskDao {
             "AND profileId = :profileId ORDER BY date ASC, createdAt ASC LIMIT :limit",
     )
     fun observeUnscheduledUpcoming(fromEpochDay: Long, profileId: String, limit: Int): kotlinx.coroutines.flow.Flow<List<TaskEntity>>
+
+    @Query("SELECT * FROM tasks WHERE scheduledAt IS NOT NULL AND scheduledAt > :nowMillis")
+    suspend fun getFutureScheduledTasks(nowMillis: Long): List<TaskEntity>
 }
