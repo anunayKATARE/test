@@ -15,5 +15,7 @@ interface TimeLogRepository {
     suspend fun touchLastEntryMillis()
     suspend fun getFirstOpenMillis(): Long
     suspend fun setFirstOpenMillis(millis: Long)
+    fun observeLoggingEnabled(): Flow<Boolean>
+    suspend fun setLoggingEnabled(enabled: Boolean)
     suspend fun deleteAllByProfile(profileId: String)
 }

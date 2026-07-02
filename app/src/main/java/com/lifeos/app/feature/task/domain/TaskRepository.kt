@@ -15,4 +15,5 @@ interface TaskRepository {
     fun observeCompletionsByDay(start: LocalDate, end: LocalDate): Flow<Map<Long, Int>>
     fun observeTotalByDay(start: LocalDate, end: LocalDate): Flow<Map<Long, Int>>
     suspend fun getTriggerFailureCounts(): Map<String, Int>
+    fun observeUnscheduledUpcoming(limit: Int = 6): Flow<List<Task>>
 }

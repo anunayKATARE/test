@@ -62,4 +62,10 @@ interface TaskDao {
 
     @Query("SELECT * FROM tasks WHERE completed = 0 AND date < :todayEpochDay AND profileId = :profileId")
     suspend fun getOverdueIncompleteTasks(todayEpochDay: Long, profileId: String): List<TaskEntity>
+
+    @Query(
+        "SELECT * FROM tasks WHERE completed = 0 AND scheduledAt IS NULL AND date >= :fromEpochDay " +
+            "AND profileId = :profileId ORDER BY date ASC, createdAt ASC LIMIT :limit",
+    )
+    fun observeUnscheduledUpcoming(fromEpochDay: Long, profileId: String, limit: Int): kotlinx.coroutines.flow.Flow<List<TaskEntity>>
 }

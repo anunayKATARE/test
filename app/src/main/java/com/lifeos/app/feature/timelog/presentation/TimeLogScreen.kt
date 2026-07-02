@@ -16,6 +16,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.NotificationsActive
+import androidx.compose.material.icons.filled.NotificationsOff
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material3.Button
@@ -63,7 +65,17 @@ fun TimeLogScreen(viewModel: TimeLogViewModel = hiltViewModel()) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
 
     LifeOSScaffold(
-        topBar = { LifeOSTopBar(title = "Time Log") },
+        topBar = {
+            LifeOSTopBar(title = "Time Log") {
+                IconButton(onClick = viewModel::toggleLoggingEnabled) {
+                    Icon(
+                        if (state.loggingEnabled) Icons.Filled.NotificationsActive else Icons.Filled.NotificationsOff,
+                        contentDescription = if (state.loggingEnabled) "Disable 30-min logging prompts" else "Enable 30-min logging prompts",
+                        tint = if (state.loggingEnabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+        },
         floatingActionButton = {
             if (state.activeTimer == null) {
                 FloatingActionButton(onClick = viewModel::openStartSheet) {

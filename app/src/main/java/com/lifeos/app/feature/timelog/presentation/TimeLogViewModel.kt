@@ -34,6 +34,7 @@ data class TimeLogUiState(
     val showStartSheet: Boolean = false,
     val entryChore: String = "",
     val entryTaskId: String? = null,
+    val loggingEnabled: Boolean = true,
 )
 
 @HiltViewModel
@@ -49,8 +50,9 @@ class TimeLogViewModel @Inject constructor(
         timeLogRepository.observeLogsForDay(today),
         timeLogRepository.observeActiveTimer(),
         taskRepository.observeTasksForDate(today),
+        timeLogRepository.observeLoggingEnabled(),
         _form,
-    ) { logs, timer, tasks, form ->
+    ) { logs, timer, tasks, enabled, form ->
         TimeLogUiState(
             todaysLogs = logs,
             activeTimer = timer,
@@ -59,6 +61,7 @@ class TimeLogViewModel @Inject constructor(
             showStartSheet = form.showStartSheet,
             entryChore = form.entryChore,
             entryTaskId = form.entryTaskId,
+            loggingEnabled = enabled,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), TimeLogUiState())
 
@@ -113,5 +116,11 @@ class TimeLogViewModel @Inject constructor(
 
     fun deleteLog(logId: String) {
         viewModelScope.launch { timeLogRepository.deleteLog(logId) }
+    }
+
+    fun toggleLoggingEnabled() {
+        viewModelScope.launch {
+            timeLogRepository.setLoggingEnabled(!uiState.value.loggingEnabled)
+        }
     }
 }

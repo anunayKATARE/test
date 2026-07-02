@@ -3,6 +3,7 @@ package com.lifeos.app.feature.timelog.data
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import com.lifeos.app.core.demo.DemoModeRepository
 import com.lifeos.app.feature.timelog.domain.TimeLog
@@ -16,6 +17,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.distinctUntilChanged
 
 class TimeLogRepositoryImpl @Inject constructor(
     private val dao: TimeLogDao,
@@ -86,10 +88,18 @@ class TimeLogRepositoryImpl @Inject constructor(
         dataStore.edit { it[FIRST_OPEN_KEY] = millis }
     }
 
+    override fun observeLoggingEnabled(): Flow<Boolean> =
+        dataStore.data.map { it[LOGGING_ENABLED_KEY] ?: true }.distinctUntilChanged()
+
+    override suspend fun setLoggingEnabled(enabled: Boolean) {
+        dataStore.edit { it[LOGGING_ENABLED_KEY] = enabled }
+    }
+
     override suspend fun deleteAllByProfile(profileId: String) = dao.deleteAllByProfile(profileId)
 
     companion object {
         private val LAST_TIME_LOG_ENTRY_KEY = longPreferencesKey("last_time_log_entry")
         private val FIRST_OPEN_KEY = longPreferencesKey("first_open_time")
+        private val LOGGING_ENABLED_KEY = booleanPreferencesKey("time_log_enabled")
     }
 }

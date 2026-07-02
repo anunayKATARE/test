@@ -2,6 +2,7 @@ package com.lifeos.app.feature.task.data
 
 import com.lifeos.app.core.demo.DemoModeRepository
 import com.lifeos.app.feature.task.domain.Task
+import com.lifeos.app.feature.task.domain.TaskAlarmScheduler
 import com.lifeos.app.feature.task.domain.TaskRepository
 import java.time.LocalDate
 import javax.inject.Inject
@@ -15,6 +16,7 @@ import kotlinx.coroutines.flow.map
 class TaskRepositoryImpl @Inject constructor(
     private val dao: TaskDao,
     private val demoModeRepository: DemoModeRepository,
+    private val alarmScheduler: TaskAlarmScheduler,
 ) : TaskRepository {
 
     private fun Flow<List<TaskEntity>>.filterByActiveProfile(): Flow<List<TaskEntity>> =
@@ -32,9 +34,13 @@ class TaskRepositoryImpl @Inject constructor(
     override suspend fun upsertTask(task: Task) {
         val profileId = demoModeRepository.activeProfile.first()?.id
         dao.upsertTask(task.toEntity().copy(profileId = profileId))
+        if (task.scheduledAt != null) alarmScheduler.schedule(task) else alarmScheduler.cancel(task.id)
     }
 
-    override suspend fun deleteTask(id: String) = dao.deleteTask(id)
+    override suspend fun deleteTask(id: String) {
+        alarmScheduler.cancel(id)
+        dao.deleteTask(id)
+    }
 
     override suspend fun setCompleted(id: String, completed: Boolean) = dao.setCompleted(id, completed)
 
@@ -73,4 +79,11 @@ class TaskRepositoryImpl @Inject constructor(
             .sortedByDescending { it.value }
             .associate { it.key to it.value }
     }
+
+    override fun observeUnscheduledUpcoming(limit: Int): Flow<List<Task>> =
+        demoModeRepository.activeProfile.flatMapLatest { profile ->
+            val profileId = profile?.id ?: return@flatMapLatest flowOf(emptyList())
+            dao.observeUnscheduledUpcoming(LocalDate.now().toEpochDay(), profileId, limit)
+                .map { list -> list.map { it.toDomain() } }
+        }
 }

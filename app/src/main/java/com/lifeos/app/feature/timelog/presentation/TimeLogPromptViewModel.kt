@@ -31,6 +31,7 @@ class TimeLogPromptViewModel @Inject constructor(
     }
 
     private suspend fun checkShouldPrompt() {
+        if (!timeLogRepository.observeLoggingEnabled().first()) return
         val activeTimer = timeLogRepository.observeActiveTimer().first()
         if (activeTimer != null) return
         val lastEntry = timeLogRepository.getLastEntryMillis()

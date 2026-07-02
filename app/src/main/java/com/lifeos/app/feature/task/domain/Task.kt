@@ -12,5 +12,6 @@ data class Task(
     val createdAt: Instant = Instant.now(),
     val triggers: List<String> = emptyList(),
     val scheduledAt: Instant? = null,
+    val scheduledEndAt: Instant? = null,
     val isChore: Boolean = false,
 )

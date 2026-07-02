@@ -17,6 +17,7 @@ data class TaskEntity(
     val profileId: String? = null,
     val triggers: List<String> = emptyList(),
     val scheduledAt: Long? = null,
+    val scheduledEndAt: Long? = null,
     val isChore: Boolean = false,
 )
 
@@ -29,6 +30,7 @@ fun TaskEntity.toDomain() = Task(
     createdAt = createdAt,
     triggers = triggers,
     scheduledAt = scheduledAt?.let { Instant.ofEpochMilli(it) },
+    scheduledEndAt = scheduledEndAt?.let { Instant.ofEpochMilli(it) },
     isChore = isChore,
 )
 
@@ -41,5 +43,6 @@ fun Task.toEntity() = TaskEntity(
     createdAt = createdAt,
     triggers = triggers,
     scheduledAt = scheduledAt?.toEpochMilli(),
+    scheduledEndAt = scheduledEndAt?.toEpochMilli(),
     isChore = isChore,
 )

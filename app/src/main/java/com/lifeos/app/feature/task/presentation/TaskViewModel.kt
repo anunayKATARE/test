@@ -13,6 +13,10 @@ import com.lifeos.app.feature.task.domain.TaskRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.time.Instant
 import java.time.LocalDate
+import java.time.LocalTime
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
+import java.time.format.DateTimeParseException
 import java.util.UUID
 import javax.inject.Inject
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -26,6 +30,8 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+
+private val HHmm: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm")
 
 data class HabitDayItem(
     val id: String,
@@ -41,6 +47,9 @@ data class TaskFormState(
     val triggers: List<String> = emptyList(),
     val triggerInput: String = "",
     val scheduledAt: Instant? = null,
+    val scheduledEndAt: Instant? = null,
+    val startTimeText: String = "",
+    val endTimeText: String = "",
     val isChore: Boolean = false,
 )
 
@@ -54,6 +63,9 @@ data class TaskUiState(
     val freeSlots: List<FreeSlot> = emptyList(),
     val calendarPermissionGranted: Boolean = false,
     val scheduledHabits: List<HabitDayItem> = emptyList(),
+    val showQuickPlan: Boolean = false,
+    val unscheduledUpcoming: List<Task> = emptyList(),
+    val quickPlanTimes: Map<String, String> = emptyMap(),
 )
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -67,7 +79,6 @@ class TaskViewModel @Inject constructor(
 
     private val _selectedDate = MutableStateFlow(LocalDate.now())
 
-    // Separate permission Flow so granting permission re-triggers calendar observation
     private val _permissionGranted = MutableStateFlow(calendarRepository.hasPermission())
 
     private val _formAndSheet = MutableStateFlow(
@@ -87,11 +98,14 @@ class TaskViewModel @Inject constructor(
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
+    private val _unscheduledUpcoming: StateFlow<List<Task>> = taskRepository
+        .observeUnscheduledUpcoming(3)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
     val uiState: StateFlow<TaskUiState> = combine(
         combine(
             _selectedDate.flatMapLatest { taskRepository.observeTasksForDate(it) },
             _selectedDate,
-            // When either date or permission changes, re-subscribe to the calendar Flow
             combine(_selectedDate, _permissionGranted) { date, granted -> date to granted }
                 .flatMapLatest { (date, granted) ->
                     if (granted) calendarRepository.observeEventsForDay(date)
@@ -110,8 +124,10 @@ class TaskViewModel @Inject constructor(
             )
         },
         _habitItems,
-    ) { state, habits -> state.copy(scheduledHabits = habits) }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), TaskUiState())
+        _unscheduledUpcoming,
+    ) { state, habits, upcoming ->
+        state.copy(scheduledHabits = habits, unscheduledUpcoming = upcoming)
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), TaskUiState())
 
     fun onCalendarPermissionResult(granted: Boolean) {
         _permissionGranted.value = granted
@@ -126,6 +142,9 @@ class TaskViewModel @Inject constructor(
     }
 
     fun openEditSheet(task: Task) {
+        val zone = ZoneId.systemDefault()
+        val startText = task.scheduledAt?.let { HHmm.format(it.atZone(zone)) } ?: ""
+        val endText = task.scheduledEndAt?.let { HHmm.format(it.atZone(zone)) } ?: ""
         _formAndSheet.update {
             it.copy(
                 showSheet = true,
@@ -136,6 +155,10 @@ class TaskViewModel @Inject constructor(
                     date = task.date,
                     triggers = task.triggers,
                     scheduledAt = task.scheduledAt,
+                    scheduledEndAt = task.scheduledEndAt,
+                    startTimeText = startText,
+                    endTimeText = endText,
+                    isChore = task.isChore,
                 ),
             )
         }
@@ -147,15 +170,44 @@ class TaskViewModel @Inject constructor(
     fun updateDescription(v: String) { _formAndSheet.update { it.copy(form = it.form.copy(description = v)) } }
     fun updateDate(v: LocalDate) { _formAndSheet.update { it.copy(form = it.form.copy(date = v)) } }
     fun updateTriggerInput(v: String) { _formAndSheet.update { it.copy(form = it.form.copy(triggerInput = v)) } }
+
     fun pickScheduledSlot(slot: FreeSlot?) {
-        _formAndSheet.update { it.copy(form = it.form.copy(scheduledAt = slot?.start)) }
+        val text = slot?.start?.let { HHmm.format(it.atZone(ZoneId.systemDefault())) } ?: ""
+        _formAndSheet.update { it.copy(form = it.form.copy(scheduledAt = slot?.start, startTimeText = text)) }
     }
 
-    fun pickScheduledTime(instant: java.time.Instant) {
-        _formAndSheet.update { it.copy(form = it.form.copy(scheduledAt = instant)) }
+    fun pickScheduledTime(instant: Instant) {
+        val text = HHmm.format(instant.atZone(ZoneId.systemDefault()))
+        _formAndSheet.update { it.copy(form = it.form.copy(scheduledAt = instant, startTimeText = text)) }
     }
 
     fun updateIsChore(v: Boolean) { _formAndSheet.update { it.copy(form = it.form.copy(isChore = v)) } }
+
+    fun updateStartTimeText(v: String) {
+        _formAndSheet.update { it.copy(form = it.form.copy(startTimeText = v)) }
+    }
+
+    fun updateEndTimeText(v: String) {
+        _formAndSheet.update { it.copy(form = it.form.copy(endTimeText = v)) }
+    }
+
+    fun applyStartTimeText() {
+        val form = _formAndSheet.value.form
+        try {
+            val lt = LocalTime.parse(form.startTimeText, HHmm)
+            val instant = lt.atDate(form.date).atZone(ZoneId.systemDefault()).toInstant()
+            _formAndSheet.update { it.copy(form = it.form.copy(scheduledAt = instant)) }
+        } catch (_: DateTimeParseException) { /* leave unchanged on invalid input */ }
+    }
+
+    fun applyEndTimeText() {
+        val form = _formAndSheet.value.form
+        try {
+            val lt = LocalTime.parse(form.endTimeText, HHmm)
+            val instant = lt.atDate(form.date).atZone(ZoneId.systemDefault()).toInstant()
+            _formAndSheet.update { it.copy(form = it.form.copy(scheduledEndAt = instant)) }
+        } catch (_: DateTimeParseException) { /* leave unchanged on invalid input */ }
+    }
 
     fun addTrigger() {
         val input = _formAndSheet.value.form.triggerInput.trim().lowercase()
@@ -183,6 +235,7 @@ class TaskViewModel @Inject constructor(
             createdAt = existing?.createdAt ?: Instant.now(),
             triggers = form.triggers,
             scheduledAt = form.scheduledAt,
+            scheduledEndAt = form.scheduledEndAt,
             isChore = form.isChore,
         )
         viewModelScope.launch { taskRepository.upsertTask(task) }
@@ -200,6 +253,37 @@ class TaskViewModel @Inject constructor(
     fun toggleHabitCompleted(item: HabitDayItem) {
         viewModelScope.launch {
             habitRepository.setCompletion(item.id, _selectedDate.value, !item.completedToday)
+        }
+    }
+
+    fun openQuickPlan() {
+        _formAndSheet.update { it.copy(showQuickPlan = true, quickPlanTimes = emptyMap()) }
+    }
+
+    fun dismissQuickPlan() {
+        _formAndSheet.update { it.copy(showQuickPlan = false) }
+    }
+
+    fun updateQuickPlanTime(taskId: String, time: String) {
+        _formAndSheet.update { it.copy(quickPlanTimes = it.quickPlanTimes + (taskId to time)) }
+    }
+
+    fun confirmQuickPlan() {
+        val state = _formAndSheet.value
+        val zone = ZoneId.systemDefault()
+        val today = LocalDate.now()
+        viewModelScope.launch {
+            state.unscheduledUpcoming.forEach { task ->
+                val timeText = state.quickPlanTimes[task.id]?.trim() ?: return@forEach
+                if (timeText.isBlank()) return@forEach
+                try {
+                    val lt = LocalTime.parse(timeText, HHmm)
+                    val taskDate = if (task.date >= today) task.date else today
+                    val instant = lt.atDate(taskDate).atZone(zone).toInstant()
+                    taskRepository.upsertTask(task.copy(scheduledAt = instant))
+                } catch (_: DateTimeParseException) { /* skip tasks with invalid time */ }
+            }
+            _formAndSheet.update { it.copy(showQuickPlan = false, quickPlanTimes = emptyMap()) }
         }
     }
 }

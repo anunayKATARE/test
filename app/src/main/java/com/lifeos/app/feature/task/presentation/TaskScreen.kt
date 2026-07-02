@@ -29,12 +29,15 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Schedule
@@ -64,6 +67,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -86,6 +92,8 @@ private val timeFormatter: DateTimeFormatter =
 
 private val slotFormatter: DateTimeFormatter =
     DateTimeFormatter.ofPattern("h:mm a").withZone(ZoneId.systemDefault())
+
+private val shortDateFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("MMM d")
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -114,7 +122,13 @@ fun TaskScreen(viewModel: TaskViewModel = hiltViewModel()) {
     }
 
     LifeOSScaffold(
-        topBar = { LifeOSTopBar(title = "Tasks") },
+        topBar = {
+            LifeOSTopBar(title = "Tasks") {
+                IconButton(onClick = viewModel::openQuickPlan) {
+                    Icon(Icons.Filled.DateRange, contentDescription = "Plan next tasks")
+                }
+            }
+        },
         floatingActionButton = {
             FloatingActionButton(onClick = viewModel::openAddSheet) {
                 Icon(Icons.Filled.Add, contentDescription = "Add task")
@@ -216,8 +230,24 @@ fun TaskScreen(viewModel: TaskViewModel = hiltViewModel()) {
                 onPickSlot = viewModel::pickScheduledSlot,
                 onPickTime = viewModel::pickScheduledTime,
                 onIsChoreChange = viewModel::updateIsChore,
+                onStartTimeChange = viewModel::updateStartTimeText,
+                onStartTimeDone = viewModel::applyStartTimeText,
+                onEndTimeChange = viewModel::updateEndTimeText,
+                onEndTimeDone = viewModel::applyEndTimeText,
                 onSave = viewModel::saveTask,
                 onDismiss = viewModel::dismissSheet,
+            )
+        }
+    }
+
+    if (state.showQuickPlan) {
+        ModalBottomSheet(onDismissRequest = viewModel::dismissQuickPlan) {
+            QuickPlanSheet(
+                tasks = state.unscheduledUpcoming,
+                times = state.quickPlanTimes,
+                onTimeChange = viewModel::updateQuickPlanTime,
+                onConfirm = viewModel::confirmQuickPlan,
+                onDismiss = viewModel::dismissQuickPlan,
             )
         }
     }
@@ -375,6 +405,7 @@ private fun TaskCard(task: Task, onToggle: () -> Unit, onEdit: () -> Unit, onDel
                         )
                     }
                     task.scheduledAt?.let { at ->
+                        val endLabel = task.scheduledEndAt?.let { " – ${slotFormatter.format(it)}" } ?: ""
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(
                                 Icons.Filled.Schedule,
@@ -384,7 +415,7 @@ private fun TaskCard(task: Task, onToggle: () -> Unit, onEdit: () -> Unit, onDel
                             )
                             Spacer(Modifier.width(3.dp))
                             Text(
-                                slotFormatter.format(at),
+                                "${slotFormatter.format(at)}$endLabel",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.primary,
                             )
@@ -605,9 +636,15 @@ private fun TaskFormSheet(
     onPickSlot: (FreeSlot?) -> Unit,
     onPickTime: (Instant) -> Unit,
     onIsChoreChange: (Boolean) -> Unit,
+    onStartTimeChange: (String) -> Unit,
+    onStartTimeDone: () -> Unit,
+    onEndTimeChange: (String) -> Unit,
+    onEndTimeDone: () -> Unit,
     onSave: () -> Unit,
     onDismiss: () -> Unit,
 ) {
+    val focusManager = LocalFocusManager.current
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -636,10 +673,10 @@ private fun TaskFormSheet(
             minLines = 2,
         )
 
-        // Vertical day timeline
+        // Vertical day timeline — tap to pick start time
         Spacer(Modifier.height(12.dp))
         Text(
-            "Day Timeline — tap to schedule",
+            "Day Timeline — tap to set start time",
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -651,14 +688,51 @@ private fun TaskFormSheet(
             selectedTime = form.scheduledAt,
             onTimeSelected = onPickTime,
         )
+
+        // Start / End time text inputs
+        Spacer(Modifier.height(8.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            OutlinedTextField(
+                value = form.startTimeText,
+                onValueChange = onStartTimeChange,
+                label = { Text("Start (HH:mm)") },
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Number,
+                    imeAction = ImeAction.Done,
+                ),
+                keyboardActions = KeyboardActions(onDone = {
+                    focusManager.clearFocus()
+                    onStartTimeDone()
+                }),
+                modifier = Modifier.weight(1f),
+            )
+            OutlinedTextField(
+                value = form.endTimeText,
+                onValueChange = onEndTimeChange,
+                label = { Text("End (HH:mm)") },
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Number,
+                    imeAction = ImeAction.Done,
+                ),
+                keyboardActions = KeyboardActions(onDone = {
+                    focusManager.clearFocus()
+                    onEndTimeDone()
+                }),
+                modifier = Modifier.weight(1f),
+            )
+        }
+
         if (form.scheduledAt != null) {
             Spacer(Modifier.height(4.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Filled.Schedule, null, modifier = Modifier.size(14.dp),
                     tint = MaterialTheme.colorScheme.primary)
                 Spacer(Modifier.width(4.dp))
+                val endLabel = form.scheduledEndAt?.let { " – ${slotFormatter.format(it)}" } ?: ""
                 Text(
-                    "Scheduled at ${slotFormatter.format(form.scheduledAt)}",
+                    "Scheduled ${slotFormatter.format(form.scheduledAt)}$endLabel",
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.primary,
                 )
@@ -801,6 +875,82 @@ private fun TaskFormSheet(
                 enabled = form.title.isNotBlank(),
                 modifier = Modifier.weight(1f),
             ) { Text(if (isEditing) "Save" else "Create") }
+        }
+        Spacer(Modifier.height(32.dp))
+    }
+}
+
+@Composable
+private fun QuickPlanSheet(
+    tasks: List<Task>,
+    times: Map<String, String>,
+    onTimeChange: (String, String) -> Unit,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val focusManager = LocalFocusManager.current
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+    ) {
+        Text("Plan Next Tasks", style = MaterialTheme.typography.titleLarge)
+        Spacer(Modifier.height(4.dp))
+        Text(
+            "Assign start times to schedule upcoming unscheduled tasks",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Spacer(Modifier.height(16.dp))
+
+        if (tasks.isEmpty()) {
+            Text(
+                "No unscheduled upcoming tasks.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        } else {
+            tasks.forEach { task ->
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(task.title, style = MaterialTheme.typography.bodyMedium)
+                        Text(
+                            task.date.format(shortDateFormatter),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    Spacer(Modifier.width(8.dp))
+                    OutlinedTextField(
+                        value = times[task.id] ?: "",
+                        onValueChange = { onTimeChange(task.id, it) },
+                        label = { Text("HH:mm") },
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(
+                            keyboardType = KeyboardType.Number,
+                            imeAction = ImeAction.Done,
+                        ),
+                        keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() }),
+                        modifier = Modifier.width(100.dp),
+                    )
+                }
+                Spacer(Modifier.height(12.dp))
+            }
+        }
+
+        Spacer(Modifier.height(16.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            OutlinedButton(onClick = onDismiss, modifier = Modifier.weight(1f)) { Text("Cancel") }
+            Button(
+                onClick = onConfirm,
+                enabled = tasks.any { times[it.id]?.trim()?.isNotBlank() == true },
+                modifier = Modifier.weight(1f),
+            ) { Text("Schedule") }
         }
         Spacer(Modifier.height(32.dp))
     }
