@@ -42,6 +42,7 @@ import com.lifeos.app.feature.reflection.data.ReflectionEntity
 import com.lifeos.app.feature.reflection.domain.ReflectionTemplateType
 import com.lifeos.app.feature.selfbelief.data.SelfBeliefDao
 import com.lifeos.app.feature.selfbelief.data.SelfBeliefEntity
+import com.lifeos.app.feature.task.data.TaskAlarmRescheduler
 import com.lifeos.app.feature.task.data.TaskDao
 import com.lifeos.app.feature.task.data.TaskEntity
 import com.lifeos.app.feature.timelog.data.TimeLogDao
@@ -73,6 +74,7 @@ class BackupRepositoryImpl @Inject constructor(
     private val dayPlanDao: DayPlanDao,
     private val timeLogDao: TimeLogDao,
     private val demoModeRepository: DemoModeRepository,
+    private val alarmRescheduler: TaskAlarmRescheduler,
 ) : BackupRepository {
 
     override suspend fun exportSnapshot(): String {
@@ -167,6 +169,9 @@ class BackupRepositoryImpl @Inject constructor(
         // Reset to the default profile so restored "My Data" rows are immediately
         // visible even when the backup came from another device
         demoModeRepository.setActiveProfile(null)
+
+        // Restored tasks were written straight through the DAO — register their alarms
+        alarmRescheduler.rescheduleAllFuture()
     }
 
     // Legacy (schema v1) files only ever contained profile-less rows; restore them
@@ -210,6 +215,7 @@ class BackupRepositoryImpl @Inject constructor(
             inspirationDao.deleteAllReal()
             root.objects("inspirationItems").forEach { inspirationDao.upsert(it.toInspirationEntity().copy(profileId = profileId)) }
         }
+        alarmRescheduler.rescheduleAllFuture()
     }
 }
 

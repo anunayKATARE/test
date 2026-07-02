@@ -4,12 +4,30 @@ import android.app.Application
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import com.lifeos.app.feature.settings.domain.SoundProfile
+import com.lifeos.app.feature.task.data.TaskAlarmRescheduler
 import dagger.hilt.android.HiltAndroidApp
+import javax.inject.Inject
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 
 @HiltAndroidApp
 class LifeOSApplication : Application() {
+
+    @Inject lateinit var alarmRescheduler: TaskAlarmRescheduler
+
+    private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
     override fun onCreate() {
         super.onCreate()
+
+        // Safety net: alarms are cleared by app updates and force-stops, so
+        // re-register every future task reminder on each launch (idempotent)
+        applicationScope.launch {
+            runCatching { alarmRescheduler.rescheduleAllFuture() }
+        }
+
         val nm = getSystemService(NotificationManager::class.java)
 
         val soundAndVibrateChannel = NotificationChannel(

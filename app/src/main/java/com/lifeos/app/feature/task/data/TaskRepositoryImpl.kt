@@ -6,12 +6,14 @@ import com.lifeos.app.feature.task.domain.TaskAlarmScheduler
 import com.lifeos.app.feature.task.domain.TaskRepository
 import java.time.LocalDate
 import javax.inject.Inject
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.withContext
 
 class TaskRepositoryImpl @Inject constructor(
     private val dao: TaskDao,
@@ -33,9 +35,16 @@ class TaskRepositoryImpl @Inject constructor(
 
     override suspend fun upsertTask(task: Task) {
         val profileId = demoModeRepository.activeProfile.first()?.id
-        dao.upsertTask(task.toEntity().copy(profileId = profileId))
-        if (task.scheduledAt != null) alarmScheduler.schedule(task) else alarmScheduler.cancel(task.id)
+        // NonCancellable so a cancelled caller scope can't persist the task
+        // while skipping the alarm registration that follows
+        withContext(NonCancellable) {
+            dao.upsertTask(task.toEntity().copy(profileId = profileId))
+            if (task.scheduledAt != null) alarmScheduler.schedule(task) else alarmScheduler.cancel(task.id)
+        }
     }
+
+    override suspend fun getFutureScheduled(): List<Task> =
+        dao.getFutureScheduledTasks(System.currentTimeMillis()).map { it.toDomain() }
 
     override suspend fun deleteTask(id: String) {
         alarmScheduler.cancel(id)

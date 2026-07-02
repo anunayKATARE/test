@@ -44,11 +44,15 @@ import java.time.format.DateTimeFormatter
 private val testTimeFormatter: DateTimeFormatter =
     DateTimeFormatter.ofPattern("HH:mm:ss").withZone(ZoneId.systemDefault())
 
+private val reminderTimeFormatter: DateTimeFormatter =
+    DateTimeFormatter.ofPattern("EEE d MMM, HH:mm").withZone(ZoneId.systemDefault())
+
 @Composable
 fun NotificationSettingsScreen(viewModel: NotificationSettingsViewModel = hiltViewModel()) {
     val currentProfile by viewModel.soundProfile.collectAsStateWithLifecycle()
     val diagnostics by viewModel.diagnostics.collectAsStateWithLifecycle()
     val testAlarmAt by viewModel.testAlarmScheduledAt.collectAsStateWithLifecycle()
+    val upcomingReminders by viewModel.upcomingReminders.collectAsStateWithLifecycle()
     val context = LocalContext.current
 
     LaunchedEffect(Unit) { viewModel.refreshDiagnostics() }
@@ -162,6 +166,48 @@ fun NotificationSettingsScreen(viewModel: NotificationSettingsViewModel = hiltVi
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.primary,
                 )
+            }
+
+            Spacer(Modifier.height(24.dp))
+            Text("Scheduled reminders", style = MaterialTheme.typography.titleMedium)
+            Spacer(Modifier.height(4.dp))
+            Text(
+                "Task reminders currently registered for the future. If a task you scheduled " +
+                    "is missing here, its reminder will not fire.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Spacer(Modifier.height(12.dp))
+            LifeOSCard(modifier = Modifier.fillMaxWidth()) {
+                Column(modifier = Modifier.padding(12.dp)) {
+                    if (upcomingReminders.isEmpty()) {
+                        Text(
+                            "No upcoming task reminders.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    } else {
+                        upcomingReminders.forEach { task ->
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 4.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(task.title, style = MaterialTheme.typography.bodyMedium)
+                                    task.scheduledAt?.let { at ->
+                                        Text(
+                                            reminderTimeFormatter.format(at),
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = MaterialTheme.colorScheme.primary,
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
             }
             Spacer(Modifier.height(32.dp))
         }

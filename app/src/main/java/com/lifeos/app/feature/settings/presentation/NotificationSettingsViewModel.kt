@@ -12,6 +12,7 @@ import com.lifeos.app.feature.settings.domain.SoundProfile
 import com.lifeos.app.feature.task.data.TaskNotificationPoster
 import com.lifeos.app.feature.task.domain.Task
 import com.lifeos.app.feature.task.domain.TaskAlarmScheduler
+import com.lifeos.app.feature.task.domain.TaskRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.time.Instant
@@ -36,6 +37,7 @@ class NotificationSettingsViewModel @Inject constructor(
     private val notificationPrefsRepository: NotificationPrefsRepository,
     private val notificationPoster: TaskNotificationPoster,
     private val alarmScheduler: TaskAlarmScheduler,
+    private val taskRepository: TaskRepository,
 ) : ViewModel() {
 
     val soundProfile: StateFlow<SoundProfile> = notificationPrefsRepository
@@ -48,12 +50,23 @@ class NotificationSettingsViewModel @Inject constructor(
     private val _testAlarmScheduledAt = MutableStateFlow<Instant?>(null)
     val testAlarmScheduledAt: StateFlow<Instant?> = _testAlarmScheduledAt.asStateFlow()
 
+    private val _upcomingReminders = MutableStateFlow<List<Task>>(emptyList())
+    val upcomingReminders: StateFlow<List<Task>> = _upcomingReminders.asStateFlow()
+
+    init {
+        refreshDiagnostics()
+    }
+
     fun setSoundProfile(profile: SoundProfile) {
         viewModelScope.launch { notificationPrefsRepository.setSoundProfile(profile) }
     }
 
     fun refreshDiagnostics() {
         _diagnostics.value = readDiagnostics()
+        viewModelScope.launch {
+            _upcomingReminders.value = taskRepository.getFutureScheduled()
+                .sortedBy { it.scheduledAt }
+        }
     }
 
     fun sendTestNotification() {
