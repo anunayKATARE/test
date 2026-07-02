@@ -32,6 +32,7 @@ object LifeOSRoutes {
     const val TASKS = "tasks"
     const val PLAN_DAY = "plan_day"
     const val TIME_LOG = "time_log"
+    const val NOTIFICATION_SETTINGS = "notification_settings"
 
     fun dayDetail(date: LocalDate): String = "day_detail/$date"
 }
@@ -63,4 +64,5 @@ val moreMenuItems = listOf(
     MoreMenuItem(LifeOSRoutes.SEARCH, "Search"),
     MoreMenuItem(LifeOSRoutes.DEMO_MODE, "Profiles"),
     MoreMenuItem(LifeOSRoutes.BACKUP, "Backup & Restore"),
+    MoreMenuItem(LifeOSRoutes.NOTIFICATION_SETTINGS, "Notification Settings"),
 )

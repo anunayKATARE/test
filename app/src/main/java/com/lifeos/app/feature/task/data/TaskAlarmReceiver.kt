@@ -6,8 +6,23 @@ import android.content.Context
 import android.content.Intent
 import androidx.core.app.NotificationCompat
 import com.lifeos.app.R
+import com.lifeos.app.feature.settings.domain.NotificationPrefsRepository
+import dagger.hilt.EntryPoint
+import dagger.hilt.InstallIn
+import dagger.hilt.android.EntryPointAccessors
+import dagger.hilt.components.SingletonComponent
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 
 class TaskAlarmReceiver : BroadcastReceiver() {
+
+    @EntryPoint
+    @InstallIn(SingletonComponent::class)
+    interface AlarmEntryPoint {
+        fun notificationPrefsRepository(): NotificationPrefsRepository
+    }
 
     override fun onReceive(context: Context, intent: Intent) {
         if (intent.action != ACTION_TASK_ALARM) return
@@ -15,17 +30,33 @@ class TaskAlarmReceiver : BroadcastReceiver() {
         val title = intent.getStringExtra(EXTRA_TITLE) ?: return
         val desc = intent.getStringExtra(EXTRA_DESC) ?: ""
 
-        val notification = NotificationCompat.Builder(context, CHANNEL_ID)
-            .setSmallIcon(R.drawable.ic_notification)
-            .setContentTitle(title)
-            .setContentText(desc.ifBlank { "Time to start your task!" })
-            .setPriority(NotificationCompat.PRIORITY_HIGH)
-            .setCategory(NotificationCompat.CATEGORY_REMINDER)
-            .setAutoCancel(true)
-            .build()
+        val pending = goAsync()
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                val ep = EntryPointAccessors.fromApplication(
+                    context.applicationContext,
+                    AlarmEntryPoint::class.java,
+                )
+                val profile = ep.notificationPrefsRepository().observeSoundProfile().first()
+                val bodyText = desc.ifBlank { "Time to start your task!" }
 
-        context.getSystemService(NotificationManager::class.java)
-            .notify(taskId.hashCode(), notification)
+                val notification = NotificationCompat.Builder(context, profile.channelId)
+                    .setSmallIcon(R.drawable.ic_notification)
+                    .setContentTitle(title)
+                    .setContentText(bodyText)
+                    .setStyle(NotificationCompat.BigTextStyle().bigText(bodyText))
+                    .setPriority(NotificationCompat.PRIORITY_HIGH)
+                    .setCategory(NotificationCompat.CATEGORY_REMINDER)
+                    .setAutoCancel(true)
+                    .extend(NotificationCompat.WearableExtender())
+                    .build()
+
+                context.getSystemService(NotificationManager::class.java)
+                    .notify(taskId.hashCode(), notification)
+            } finally {
+                pending.finish()
+            }
+        }
     }
 
     companion object {

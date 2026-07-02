@@ -47,6 +47,7 @@ import com.lifeos.app.feature.problemsolver.presentation.ProblemScreen
 import com.lifeos.app.feature.reflection.presentation.ReflectionScreen
 import com.lifeos.app.feature.search.presentation.SearchScreen
 import com.lifeos.app.feature.selfbelief.presentation.SelfBeliefScreen
+import com.lifeos.app.feature.settings.presentation.NotificationSettingsScreen
 import com.lifeos.app.feature.task.presentation.TaskScreen
 import com.lifeos.app.feature.timelog.presentation.TimeLogPromptDialog
 import com.lifeos.app.feature.timelog.presentation.TimeLogPromptViewModel
@@ -139,6 +140,7 @@ fun LifeOSNavHost() {
                     composable(LifeOSRoutes.SEARCH) { SearchScreen() }
                     composable(LifeOSRoutes.DEMO_MODE) { DemoModeScreen() }
                     composable(LifeOSRoutes.BACKUP) { BackupScreen() }
+                    composable(LifeOSRoutes.NOTIFICATION_SETTINGS) { NotificationSettingsScreen() }
                 }
             }
 

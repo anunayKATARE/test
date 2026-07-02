@@ -157,6 +157,7 @@ fun TaskScreen(viewModel: TaskViewModel = hiltViewModel()) {
                     hasPermission = state.calendarPermissionGranted,
                     permanentlyDenied = permissionDeniedPermanently,
                     events = state.calendarEvents,
+                    scheduledTasks = state.tasks.filter { it.scheduledAt != null },
                     date = state.selectedDate,
                     onRequestPermission = {
                         calendarPermissionLauncher.launch(Manifest.permission.READ_CALENDAR)
@@ -259,6 +260,7 @@ private fun CalendarSection(
     hasPermission: Boolean,
     permanentlyDenied: Boolean,
     events: List<CalendarEvent>,
+    scheduledTasks: List<Task>,
     date: LocalDate,
     onRequestPermission: () -> Unit,
     onOpenSettings: () -> Unit,
@@ -278,24 +280,32 @@ private fun CalendarSection(
             Spacer(Modifier.height(8.dp))
 
             when {
-                hasPermission -> DayBusyBar(events = events, date = date)
-                permanentlyDenied -> Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        "Calendar access was denied. Enable it in Settings.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.weight(1f),
-                    )
-                    TextButton(onClick = onOpenSettings) { Text("Settings") }
+                hasPermission -> DayBusyBar(events = events, scheduledTasks = scheduledTasks, date = date)
+                permanentlyDenied -> {
+                    DayBusyBar(events = emptyList(), scheduledTasks = scheduledTasks, date = date)
+                    Spacer(Modifier.height(4.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            "Calendar access was denied. Enable it in Settings.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.weight(1f),
+                        )
+                        TextButton(onClick = onOpenSettings) { Text("Settings") }
+                    }
                 }
-                else -> Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        "Allow calendar access to see busy times",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.weight(1f),
-                    )
-                    TextButton(onClick = onRequestPermission) { Text("Allow") }
+                else -> {
+                    DayBusyBar(events = emptyList(), scheduledTasks = scheduledTasks, date = date)
+                    Spacer(Modifier.height(4.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            "Allow calendar access to see busy times",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.weight(1f),
+                        )
+                        TextButton(onClick = onRequestPermission) { Text("Allow") }
+                    }
                 }
             }
         }
@@ -303,7 +313,7 @@ private fun CalendarSection(
 }
 
 @Composable
-private fun DayBusyBar(events: List<CalendarEvent>, date: LocalDate) {
+private fun DayBusyBar(events: List<CalendarEvent>, scheduledTasks: List<Task>, date: LocalDate) {
     val zone = ZoneId.systemDefault()
     val windowStartHour = 7
     val windowEndHour = 22
@@ -311,12 +321,14 @@ private fun DayBusyBar(events: List<CalendarEvent>, date: LocalDate) {
     val windowEnd = date.atTime(windowEndHour, 0).atZone(zone).toInstant()
     val totalMinutes = Duration.between(windowStart, windowEnd).toMinutes().toFloat()
 
-    val busyColor = MaterialTheme.colorScheme.errorContainer
+    val eventColor = MaterialTheme.colorScheme.errorContainer
+    val taskColor = MaterialTheme.colorScheme.primaryContainer
     val nonAllDay = events.filter { !it.isAllDay }
 
     val windowHours = (windowEndHour - windowStartHour).toFloat()
     val hourLabels = listOf(7 to "7am", 9 to "9am", 11 to "11am", 13 to "1pm",
         15 to "3pm", 17 to "5pm", 19 to "7pm", 22 to "10pm")
+
     BoxWithConstraints(modifier = Modifier.fillMaxWidth().padding(bottom = 2.dp)) {
         hourLabels.forEach { (hour, label) ->
             val frac = (hour - windowStartHour) / windowHours
@@ -331,10 +343,11 @@ private fun DayBusyBar(events: List<CalendarEvent>, date: LocalDate) {
         }
     }
 
+    // Calendar events bar
     BoxWithConstraints(
         modifier = Modifier
             .fillMaxWidth()
-            .height(20.dp)
+            .height(10.dp)
             .clip(RoundedCornerShape(4.dp))
             .background(MaterialTheme.colorScheme.surfaceVariant),
     ) {
@@ -350,20 +363,76 @@ private fun DayBusyBar(events: List<CalendarEvent>, date: LocalDate) {
                         .offset(x = totalWidth * startFrac)
                         .width(totalWidth * widthFrac)
                         .fillMaxHeight()
-                        .background(busyColor),
+                        .background(eventColor),
                 )
             }
         }
     }
 
+    Spacer(Modifier.height(2.dp))
+
+    // Scheduled tasks bar
+    BoxWithConstraints(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(10.dp)
+            .clip(RoundedCornerShape(4.dp))
+            .background(MaterialTheme.colorScheme.surfaceVariant),
+    ) {
+        val totalWidth = maxWidth
+        scheduledTasks.forEach { task ->
+            val taskStart = task.scheduledAt ?: return@forEach
+            val taskEnd = task.scheduledEndAt ?: taskStart.plusSeconds(30 * 60)
+            val s = maxOf(taskStart, windowStart)
+            val e = minOf(taskEnd, windowEnd)
+            if (s < e) {
+                val startFrac = Duration.between(windowStart, s).toMinutes().toFloat() / totalMinutes
+                val widthFrac = Duration.between(s, e).toMinutes().toFloat() / totalMinutes
+                Box(
+                    modifier = Modifier
+                        .offset(x = totalWidth * startFrac)
+                        .width(totalWidth * widthFrac)
+                        .fillMaxHeight()
+                        .background(taskColor),
+                )
+            }
+        }
+    }
+
+    // Legend
+    Spacer(Modifier.height(6.dp))
+    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        if (nonAllDay.isNotEmpty()) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(modifier = Modifier.size(6.dp).background(eventColor, CircleShape))
+                Spacer(Modifier.width(4.dp))
+                Text("Calendar", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
+        if (scheduledTasks.isNotEmpty()) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(modifier = Modifier.size(6.dp).background(taskColor, CircleShape))
+                Spacer(Modifier.width(4.dp))
+                Text("Tasks", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
+        if (nonAllDay.isEmpty() && scheduledTasks.isEmpty()) {
+            Text(
+                "No events or scheduled tasks",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+
     if (nonAllDay.isNotEmpty()) {
-        Spacer(Modifier.height(8.dp))
+        Spacer(Modifier.height(6.dp))
         nonAllDay.forEach { event ->
             Row(
                 modifier = Modifier.padding(vertical = 2.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Box(modifier = Modifier.size(6.dp).background(busyColor, CircleShape))
+                Box(modifier = Modifier.size(6.dp).background(eventColor, CircleShape))
                 Spacer(Modifier.width(6.dp))
                 Text(
                     "${timeFormatter.format(event.startAt)}–${timeFormatter.format(event.endAt)}  ${event.title}",
@@ -372,13 +441,6 @@ private fun DayBusyBar(events: List<CalendarEvent>, date: LocalDate) {
                 )
             }
         }
-    } else {
-        Spacer(Modifier.height(4.dp))
-        Text(
-            "No events — day is clear",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
     }
 }
 
