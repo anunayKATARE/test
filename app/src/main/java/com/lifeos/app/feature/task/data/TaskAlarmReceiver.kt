@@ -6,14 +6,12 @@ import android.content.Context
 import android.content.Intent
 import androidx.core.app.NotificationCompat
 import com.lifeos.app.R
-import com.lifeos.app.feature.settings.domain.NotificationPrefsRepository
 import dagger.hilt.EntryPoint
 import dagger.hilt.InstallIn
 import dagger.hilt.android.EntryPointAccessors
 import dagger.hilt.components.SingletonComponent
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 class TaskAlarmReceiver : BroadcastReceiver() {
@@ -21,7 +19,7 @@ class TaskAlarmReceiver : BroadcastReceiver() {
     @EntryPoint
     @InstallIn(SingletonComponent::class)
     interface AlarmEntryPoint {
-        fun notificationPrefsRepository(): NotificationPrefsRepository
+        fun notificationPoster(): TaskNotificationPoster
     }
 
     override fun onReceive(context: Context, intent: Intent) {
@@ -29,38 +27,36 @@ class TaskAlarmReceiver : BroadcastReceiver() {
         val taskId = intent.getStringExtra(EXTRA_TASK_ID) ?: return
         val title = intent.getStringExtra(EXTRA_TITLE) ?: return
         val desc = intent.getStringExtra(EXTRA_DESC) ?: ""
+        val body = desc.ifBlank { "Time to start your task!" }
 
-        val bodyText = desc.ifBlank { "Time to start your task!" }
         val pending = goAsync()
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                val channelId = try {
-                    val ep = EntryPointAccessors.fromApplication(
-                        context.applicationContext,
-                        AlarmEntryPoint::class.java,
-                    )
-                    ep.notificationPrefsRepository().observeSoundProfile().first().channelId
-                } catch (_: Exception) {
-                    CHANNEL_ID
-                }
-
-                val notification = NotificationCompat.Builder(context, channelId)
-                    .setSmallIcon(R.drawable.ic_notification)
-                    .setContentTitle(title)
-                    .setContentText(bodyText)
-                    .setStyle(NotificationCompat.BigTextStyle().bigText(bodyText))
-                    .setPriority(NotificationCompat.PRIORITY_HIGH)
-                    .setCategory(NotificationCompat.CATEGORY_REMINDER)
-                    .setAutoCancel(true)
-                    .extend(NotificationCompat.WearableExtender())
-                    .build()
-
-                context.getSystemService(NotificationManager::class.java)
-                    .notify(taskId.hashCode(), notification)
+                val ep = EntryPointAccessors.fromApplication(
+                    context.applicationContext,
+                    AlarmEntryPoint::class.java,
+                )
+                ep.notificationPoster().post(taskId.hashCode(), title, body)
+            } catch (_: Exception) {
+                // Last-resort fallback: post directly on the default channel so
+                // the notification is never silently dropped
+                postFallback(context, taskId.hashCode(), title, body)
             } finally {
                 pending.finish()
             }
         }
+    }
+
+    private fun postFallback(context: Context, id: Int, title: String, body: String) {
+        val notification = NotificationCompat.Builder(context, CHANNEL_ID)
+            .setSmallIcon(R.drawable.ic_notification)
+            .setContentTitle(title)
+            .setContentText(body)
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setCategory(NotificationCompat.CATEGORY_REMINDER)
+            .setAutoCancel(true)
+            .build()
+        context.getSystemService(NotificationManager::class.java).notify(id, notification)
     }
 
     companion object {

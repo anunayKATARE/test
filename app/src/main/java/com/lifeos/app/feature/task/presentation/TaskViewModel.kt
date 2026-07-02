@@ -246,6 +246,14 @@ class TaskViewModel @Inject constructor(
         val form = _formAndSheet.value.form
         if (form.title.isBlank()) return
         val existing = _formAndSheet.value.editingTask
+        // Time text fields are authoritative at save time — parse them even if the
+        // user never pressed the keyboard's Done key
+        val scheduledAt =
+            if (form.startTimeText.isBlank()) form.scheduledAt
+            else parseTime(form.startTimeText, form.date) ?: form.scheduledAt
+        val scheduledEndAt =
+            if (form.endTimeText.isBlank()) form.scheduledEndAt
+            else parseTime(form.endTimeText, form.date) ?: form.scheduledEndAt
         val task = Task(
             id = existing?.id ?: UUID.randomUUID().toString(),
             title = form.title.trim(),
@@ -254,8 +262,8 @@ class TaskViewModel @Inject constructor(
             completed = existing?.completed ?: false,
             createdAt = existing?.createdAt ?: Instant.now(),
             triggers = form.triggers,
-            scheduledAt = form.scheduledAt,
-            scheduledEndAt = form.scheduledEndAt,
+            scheduledAt = scheduledAt,
+            scheduledEndAt = scheduledEndAt,
             isChore = form.isChore,
         )
         viewModelScope.launch { taskRepository.upsertTask(task) }
